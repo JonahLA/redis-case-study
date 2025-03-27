@@ -1,7 +1,7 @@
 # Week 1 Stories: Baseline Implementation
 
 ## Core Tasks
-- [ ] Set up the backend architecture with Node.js, Express, and TypeScript.
+- [X] Set up the backend architecture with Node.js, Express, and TypeScript.
 - [ ] Set up Docker containerization for the backend.
 - [ ] Configure PostgreSQL and Prisma for database integration.
 - [ ] Set up Redis as a caching layer.
