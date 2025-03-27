@@ -11,3 +11,49 @@ Eventually, I want to be able to build websites, applications, and games that ar
 At the moment, I am planning on containerizing my backend application in Docker, utilizing local Redis and PostgreSQL containers. If this architecture fails to stand up to load-testing in Postman (5,000 reads and writes), then I will switch to using Redis and PostgreSQL in the cloud instead. If this architecture works, though, then it will look like the following:
 
 ![Architecture diagram](resources/project-architecture.svg)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14+)
+- npm
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Running the application
+
+To start the development server:
+```bash
+npm run dev
+```
+
+This will start the server on port 7090. You can access the health check endpoint at:
+```
+http://localhost:7090/health
+```
+
+### Testing
+
+To run tests:
+```bash
+npm test
+```
+
+### Building for production
+
+To build the application:
+```bash
+npm run build
+```
+
+To start the production server:
+```bash
+npm start
+```
