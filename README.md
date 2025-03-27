@@ -18,8 +18,11 @@ At the moment, I am planning on containerizing my backend application in Docker,
 
 - Node.js (v14+)
 - npm
+- Docker and Docker Compose (for containerized development)
 
 ### Installation
+
+#### Local Development
 
 1. Clone the repository
 2. Install dependencies:
@@ -27,7 +30,23 @@ At the moment, I am planning on containerizing my backend application in Docker,
    npm install
    ```
 
+#### Docker Development
+
+1. Clone the repository
+2. Create a `.env` file based on `.env.example`
+3. Start the Docker containers:
+   ```bash
+   docker-compose up
+   ```
+
+This will start the following services:
+- Node.js application on port 7090
+- PostgreSQL on port 5432
+- Redis on port 6379
+
 ### Running the application
+
+#### Local Development
 
 To start the development server:
 ```bash
@@ -39,14 +58,34 @@ This will start the server on port 7090. You can access the health check endpoin
 http://localhost:7090/health
 ```
 
+#### Docker Development
+
+The application starts automatically when running `docker-compose up`. 
+
+You can access the health check endpoint at:
+```
+http://localhost:7090/health
+```
+
 ### Testing
+
+#### Local Testing
 
 To run tests:
 ```bash
 npm test
 ```
 
+#### Docker Testing
+
+To run tests in the containerized environment:
+```bash
+docker-compose -f docker-compose.test.yml up --build
+```
+
 ### Building for production
+
+#### Local Build
 
 To build the application:
 ```bash
@@ -56,4 +95,39 @@ npm run build
 To start the production server:
 ```bash
 npm start
+```
+
+#### Docker Production Build
+
+To build and run the production Docker image:
+```bash
+docker build -t redis-case-study .
+docker run -p 7090:7090 redis-case-study
+```
+
+### Docker Commands
+
+#### View logs
+```bash
+docker-compose logs -f
+```
+
+#### Connect to PostgreSQL
+```bash
+docker-compose exec postgres psql -U postgres -d redis_case_study
+```
+
+#### Connect to Redis CLI
+```bash
+docker-compose exec redis redis-cli
+```
+
+#### Stop all services
+```bash
+docker-compose down
+```
+
+#### Stop and remove volumes
+```bash
+docker-compose down -v
 ```
