@@ -2,6 +2,7 @@ import express from 'express';
 import { serverConfig } from './config/server';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import healthRoutes from './controllers/healthController';
+import { disconnectPrisma } from './lib/prisma';
 
 const app = express();
 
@@ -16,9 +17,24 @@ app.use(errorMiddleware);
 
 // Only start the server if this file is run directly
 if (require.main === module) {
-  const _server = app.listen(serverConfig.port, () => {
+  const server = app.listen(serverConfig.port, () => {
     console.log(`Server is running on port ${serverConfig.port}`);
   });
+
+  // Handle graceful shutdown
+  const shutdown = async () => {
+    console.log('Shutting down server...');
+    server.close(async () => {
+      console.log('Disconnecting from database...');
+      await disconnectPrisma();
+      console.log('Server shutdown complete.');
+      process.exit(0);
+    });
+  };
+
+  // Listen for shutdown signals
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 export default app;

@@ -9,7 +9,11 @@ services:
       - NODE_ENV=test
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/redis_test
       - REDIS_URL=redis://redis:6379
-    command: npm test
+    command: >
+      sh -c "./scripts/wait-for.sh postgres 5432 -- 
+             npx prisma migrate deploy && 
+             npx prisma generate && 
+             npm test"
     depends_on:
       postgres:
         condition: service_healthy

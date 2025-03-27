@@ -1,11 +1,21 @@
 import { HealthStatus } from '../models/healthStatus';
+import { checkDatabaseConnection } from '../lib/prisma';
 
 export class HealthService {
-  getHealthStatus(): HealthStatus {
+  async getHealthStatus(): Promise<HealthStatus> {
+    // Check database connection
+    const isDatabaseConnected = await checkDatabaseConnection();
+
     return {
-      status: 'ok',
+      status: isDatabaseConnected ? 'ok' : 'error',
       timestamp: new Date().toISOString(),
-      message: 'Server is healthy'
+      message: isDatabaseConnected ? 'Server is healthy' : 'Database connection failed',
+      services: {
+        database: {
+          status: isDatabaseConnected ? 'ok' : 'error',
+          message: isDatabaseConnected ? 'Connected' : 'Disconnected'
+        }
+      }
     };
   }
 }

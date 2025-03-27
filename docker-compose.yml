@@ -21,6 +21,11 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    command: >
+      sh -c "./scripts/wait-for.sh postgres 5432 -- 
+             npx prisma migrate deploy && 
+             npx prisma generate && 
+             npm run dev"
 
   postgres:
     image: postgres:14-alpine
