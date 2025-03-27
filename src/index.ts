@@ -16,7 +16,7 @@ app.use(errorMiddleware);
 
 // Only start the server if this file is run directly
 if (require.main === module) {
-  const server = app.listen(serverConfig.port, () => {
+  const _server = app.listen(serverConfig.port, () => {
     console.log(`Server is running on port ${serverConfig.port}`);
   });
 }
