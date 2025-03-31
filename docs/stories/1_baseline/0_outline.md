@@ -3,7 +3,7 @@
 ## Core Tasks
 - [X] Set up the backend architecture with Node.js, Express, and TypeScript.
 - [X] Set up Docker containerization for the backend.
-- [ ] Configure PostgreSQL and Prisma for database integration.
+- [X] Configure PostgreSQL and Prisma for database integration.
 - [ ] Set up Redis as a caching layer.
 - [ ] Create API endpoints for:
   - [ ] Browsing products by category.

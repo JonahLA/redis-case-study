@@ -3,6 +3,7 @@ import { serverConfig } from './config/server';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import healthRoutes from './controllers/healthController';
 import { disconnectPrisma } from './lib/prisma';
+import { disconnectRedis } from './lib/redis';
 
 const app = express();
 
@@ -27,6 +28,8 @@ if (require.main === module) {
     server.close(async () => {
       console.log('Disconnecting from database...');
       await disconnectPrisma();
+      console.log('Disconnecting from Redis...');
+      await disconnectRedis();
       console.log('Server shutdown complete.');
       process.exit(0);
     });

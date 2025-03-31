@@ -6,6 +6,10 @@ export interface HealthStatus {
     database?: {
       status: string;
       message: string;
+    },
+    redis?: {
+      status: string;
+      message: string;
     }
   };
 }

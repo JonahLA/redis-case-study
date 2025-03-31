@@ -12,7 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:reset": "prisma migrate reset --force"
+    "prisma:reset": "prisma migrate reset --force",
+    "cache:clear": "ts-node scripts/clear-cache.ts"
   },
   "keywords": [
     "redis",
@@ -23,7 +24,8 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "@prisma/client": "^5.3.1"
+    "@prisma/client": "^5.3.1",
+    "ioredis": "^5.3.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
