@@ -13,7 +13,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:reset": "prisma migrate reset --force",
-    "cache:clear": "ts-node scripts/clear-cache.ts"
+    "cache:clear": "ts-node scripts/clear-cache.ts",
+    "worklog": "node scripts/create-work-log.js"
   },
   "keywords": [
     "redis",

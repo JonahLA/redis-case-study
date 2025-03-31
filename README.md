@@ -131,3 +131,34 @@ docker-compose down
 ```bash
 docker-compose down -v
 ```
+
+### Work Log
+
+To use the work log script:
+```bash
+npm run worklog
+```
+
+## Project Documentation
+
+### Work Log
+
+This project maintains a detailed work log that documents decisions made, implementation details, and challenges encountered during development. The work log is structured as follows:
+
+- [Work Log Index](docs/work-log-index.md): Main chronological index of all work log entries
+- Individual work log files in the [docs/work-logs](docs/work-logs/) directory
+
+#### Creating New Work Log Entries
+
+To create a new work log entry, use the provided script:
+
+```bash
+npm run worklog "Feature Name"
+```
+
+This will:
+1. Create a new markdown file in the `docs/work-logs` directory with the current date and feature name
+2. Add a template with standard sections for documenting decisions, technical details, and implementation challenges
+3. Update the work log index file with a link to the new entry
+
+After creating the entry, edit the generated file to document your work on the feature.
