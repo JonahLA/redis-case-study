@@ -17,6 +17,9 @@ jest.mock('ioredis', () => {
   return RedisMock;
 });
 
+// Override NODE_ENV for this specific test
+const originalEnv = process.env.NODE_ENV;
+
 import redis, { 
   checkRedisConnection,
   disconnectRedis,
@@ -33,6 +36,11 @@ describe('Redis Client', () => {
   // Reset all mocks before each test
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  // Restore environment after tests
+  afterAll(() => {
+    process.env.NODE_ENV = originalEnv;
   });
 
   it('should check Redis connection successfully', async () => {
@@ -53,11 +61,17 @@ describe('Redis Client', () => {
   });
 
   it('should disconnect Redis client gracefully', async () => {
+    // Temporarily change NODE_ENV to non-test for this test
+    process.env.NODE_ENV = 'development';
+    
     // Act
     await disconnectRedis();
     
     // Assert
     expect(redis.quit).toHaveBeenCalled();
+    
+    // Restore NODE_ENV
+    process.env.NODE_ENV = 'test';
   });
 
   it('should set value with expiry', async () => {

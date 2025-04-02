@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../src/index';
 import { Server } from 'http';
+import { disconnectRedis } from '../../src/lib/redis';
 
 // Mock CategoryService
 jest.mock('../../src/services/categoryService', () => {
@@ -71,8 +72,12 @@ beforeAll(() => {
   server = app.listen(4001);
 });
 
-afterAll((done) => {
-  server.close(done);
+// Fixed TypeScript error by using a Promise-based approach
+afterAll(async () => {
+  await disconnectRedis();
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
 });
 
 describe('Category API Endpoints', () => {

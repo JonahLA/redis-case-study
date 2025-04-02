@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../src/index';
 import { Server } from 'http';
+import { disconnectRedis } from '../../src/lib/redis';
 
 // Mock database connection check
 jest.mock('../../src/lib/prisma', () => {
@@ -18,6 +19,8 @@ jest.mock('../../src/lib/redis', () => {
     __esModule: true,
     default: {
       status: 'ready',
+      quit: jest.fn().mockResolvedValue('OK'),
+      disconnect: jest.fn(),
     },
     checkRedisConnection: jest.fn().mockResolvedValue(true),
     disconnectRedis: jest.fn().mockResolvedValue(undefined),
@@ -31,8 +34,12 @@ beforeAll(() => {
   server = app.listen(4000);
 });
 
-afterAll((done) => {
-  server.close(done);
+// Fixed TypeScript error by using a Promise-based approach
+afterAll(async () => {
+  await disconnectRedis();
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
 });
 
 describe('Health Check Endpoint', () => {

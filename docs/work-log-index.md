@@ -20,3 +20,4 @@ This file provides a chronological overview of all work completed on the Redis C
 
 ### April 1, 2025
 - [Product Category API Implementation](./work-logs/20250401-product-category-api.md)
+- [Redis Testing Debugging](./work-logs/20250401-redis-testing-debugging.md)
