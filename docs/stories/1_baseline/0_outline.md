@@ -4,13 +4,13 @@
 - [X] Set up the backend architecture with Node.js, Express, and TypeScript.
 - [X] Set up Docker containerization for the backend.
 - [X] Configure PostgreSQL and Prisma for database integration.
-- [ ] Set up Redis as a caching layer.
+- [X] Set up Redis as a caching layer.
 - [ ] Create API endpoints for:
-  - [ ] Browsing products by category.
-  - [ ] Viewing detailed product information.
-  - [ ] Adding products to the cart.
-  - [ ] Simulating the checkout process.
-  - [ ] Updating product inventory upon purchase.
+  - [X] Browsing products by category.
+  - [X] Viewing detailed product information.
+  - [X] Adding products to the cart.
+  - [X] Simulating the checkout process.
+  - [X] Updating product inventory upon purchase.
 - [ ] Write unit tests for the API endpoints.
 - [ ] Conduct load testing for baseline performance (without caching).
 
