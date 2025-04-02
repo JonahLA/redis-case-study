@@ -39,6 +39,29 @@ export class ProductRepository extends BaseRepository<Prisma.ProductGetPayload<{
   }
 
   /**
+   * Find related products from the same category, excluding the current product
+   */
+  async findRelatedProducts(productId: number, categoryId: number, limit: number = 4): Promise<Prisma.ProductGetPayload<{
+    select: { id: true, name: true, price: true, imageUrl: true }
+  }>[]> {
+    return this.model.findMany({
+      where: {
+        categoryId,
+        NOT: {
+          id: productId
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        imageUrl: true
+      },
+      take: limit
+    });
+  }
+
+  /**
    * Update product stock (with pessimistic locking for consistency)
    */
   async updateStock(id: number, quantity: number): Promise<Prisma.ProductGetPayload<{}>> {

@@ -1,6 +1,35 @@
 import { Prisma } from '@prisma/client';
 import { ProductRepository } from '../repositories/productRepository';
 import redis, { getOrSet } from '../lib/redis';
+import { AppError } from '../middleware/errorMiddleware';
+
+export interface ProductDetailResponse {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock: number;
+  imageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  category: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  brand: {
+    id: number;
+    name: string;
+    description: string;
+    imageUrl: string | null;
+  };
+  relatedProducts: {
+    id: number;
+    name: string;
+    price: string;
+    imageUrl: string | null;
+  }[];
+}
 
 export class ProductService {
   private repository: ProductRepository;
@@ -115,5 +144,56 @@ export class ProductService {
     } catch (error) {
       console.error(`Error invalidating cache for product ${id}:`, error);
     }
+  }
+
+  /**
+   * Get detailed product information including related products
+   */
+  async getProductDetail(id: number): Promise<ProductDetailResponse> {
+    // Find the product with its relations
+    const product = await this.repository.findByIdWithRelations(id);
+    
+    if (!product) {
+      throw new AppError(`Product with ID ${id} not found`, 404);
+    }
+
+    // Find related products from the same category
+    const relatedProducts = await this.repository.findRelatedProducts(id, product.categoryId);
+
+    // Format the response according to the API contract
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price.toString(),
+      stock: product.stock,
+      imageUrl: product.imageUrl,
+      createdAt: product.createdAt.toISOString(),
+      updatedAt: product.updatedAt.toISOString(),
+      category: {
+        id: product.category.id,
+        name: product.category.name,
+        description: product.category.description
+      },
+      brand: {
+        id: product.brand.id,
+        name: product.brand.name,
+        description: product.brand.description,
+        imageUrl: product.brand.imageUrl
+      },
+      relatedProducts: relatedProducts.map(related => ({
+        id: related.id,
+        name: related.name,
+        price: related.price.toString(),
+        imageUrl: related.imageUrl
+      }))
+    };
+  }
+
+  /**
+   * Get all products
+   */
+  async getAllProducts(): Promise<Prisma.ProductGetPayload<{}>[]> {
+    return this.repository.findAll();
   }
 }
