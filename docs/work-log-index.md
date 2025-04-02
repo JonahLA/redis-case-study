@@ -15,3 +15,8 @@ This file provides a chronological overview of all work completed on the Redis C
 
 ### March 31, 2025
 - [Redis Caching Infrastructure Implementation](./work-logs/20250331-redis-caching-infrastructure.md)
+
+## April 2025
+
+### April 1, 2025
+- [Product Category API Implementation](./work-logs/20250401-product-category-api.md)

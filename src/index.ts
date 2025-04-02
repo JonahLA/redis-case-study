@@ -2,6 +2,8 @@ import express from 'express';
 import { serverConfig } from './config/server';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import healthRoutes from './controllers/healthController';
+import categoryRoutes from './controllers/categoryController';
+import brandRoutes from './controllers/brandController';
 import { disconnectPrisma } from './lib/prisma';
 import { disconnectRedis } from './lib/redis';
 
@@ -12,6 +14,8 @@ app.use(express.json());
 
 // Routes
 app.use('/health', healthRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/brands', brandRoutes);
 
 // Error handling
 app.use(errorMiddleware);
