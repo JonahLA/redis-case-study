@@ -4,6 +4,7 @@ import { errorMiddleware } from './middleware/errorMiddleware';
 import healthRoutes from './controllers/healthController';
 import categoryRoutes from './controllers/categoryController';
 import brandRoutes from './controllers/brandController';
+import productRoutes from './controllers/productController';
 import { disconnectPrisma } from './lib/prisma';
 import { disconnectRedis } from './lib/redis';
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/health', healthRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/brands', brandRoutes);
+app.use('/api/products', productRoutes);
 
 // Error handling
 app.use(errorMiddleware);

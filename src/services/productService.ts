@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { ProductRepository } from '../repositories/productRepository';
-import redis, { getOrSet } from '../lib/redis';
 import { AppError } from '../middleware/errorMiddleware';
+import { PaginatedResponse } from './categoryService';
 
 export interface ProductDetailResponse {
   id: number;
@@ -33,116 +33,138 @@ export interface ProductDetailResponse {
 
 export class ProductService {
   private repository: ProductRepository;
-  private DEFAULT_CACHE_TTL = 3600; // 1 hour in seconds
   
   constructor() {
     this.repository = new ProductRepository();
   }
 
   /**
-   * Get a product by ID, with caching
+   * Get all products
    */
-  async getProductById(id: number): Promise<Prisma.ProductGetPayload<{}> | null> {
-    const cacheKey = `product:${id}`;
+  async getAllProducts(): Promise<Prisma.ProductGetPayload<{}>[]> {
+    return this.repository.findAll();
+  }
+
+  /**
+   * Get a product by ID
+   */
+  async getProductById(id: number): Promise<Prisma.ProductGetPayload<{}>> {
+    const product = await this.repository.findById(id);
+    
+    if (!product) {
+      throw new AppError(`Product with ID ${id} not found`, 404);
+    }
+    
+    return product;
+  }
+
+  /**
+   * Get products by category with pagination and sorting
+   */
+  async getProductsByCategory(
+    categoryId: number,
+    options: {
+      limit?: number;
+      offset?: number;
+      sort?: string;
+      order?: 'asc' | 'desc';
+    }
+  ): Promise<PaginatedResponse<Prisma.ProductGetPayload<{}>>> {
+    // Default pagination and sorting options
+    const limit = options.limit || 10;
+    const offset = options.offset || 0;
+    const sort = options.sort || 'name';
+    const order = options.order || 'asc';
     
     try {
-      // Use getOrSet utility to handle cache miss/hit logic
-      const productJson = await getOrSet(
-        cacheKey,
-        async () => {
-          const product = await this.repository.findById(id);
-          if (!product) return ''; // Empty string for null values
-          return JSON.stringify(product);
-        },
-        this.DEFAULT_CACHE_TTL
-      );
+      const products = await this.repository.findByCategory(categoryId);
+      const total = products.length;
       
-      // If empty string, it means product was not found
-      if (!productJson) return null;
+      // Apply sorting
+      products.sort((a, b) => {
+        if (sort === 'price') {
+          // Sort by price (numeric)
+          const priceA = typeof a.price === 'number' ? a.price : Number(a.price);
+          const priceB = typeof b.price === 'number' ? b.price : Number(b.price);
+          return order === 'asc' ? priceA - priceB : priceB - priceA;
+        } else {
+          // Default sort by name (string)
+          const nameA = a.name.toLowerCase();
+          const nameB = b.name.toLowerCase();
+          return order === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        }
+      });
       
-      return JSON.parse(productJson);
+      // Apply pagination
+      const paginatedProducts = products.slice(offset, offset + limit);
+      
+      return {
+        data: paginatedProducts,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total
+        }
+      };
     } catch (error) {
-      console.error(`Error getting product ${id} with cache:`, error);
-      // Fallback to database on cache error
-      return this.repository.findById(id);
+      console.error(`Error getting products for category ${categoryId}:`, error);
+      throw error;
     }
   }
 
   /**
-   * Get a product with relations (brand and category), with caching
+   * Get products by brand with pagination and sorting
    */
-  async getProductWithRelations(id: number): Promise<Prisma.ProductGetPayload<{
-    include: { brand: true, category: true }
-  }> | null> {
-    const cacheKey = `product:${id}:with_relations`;
-    
-    try {
-      // Use getOrSet utility to handle cache miss/hit logic
-      const productJson = await getOrSet(
-        cacheKey,
-        async () => {
-          const product = await this.repository.findByIdWithRelations(id);
-          if (!product) return ''; // Empty string for null values
-          return JSON.stringify(product);
-        },
-        this.DEFAULT_CACHE_TTL
-      );
-      
-      // If empty string, it means product was not found
-      if (!productJson) return null;
-      
-      return JSON.parse(productJson);
-    } catch (error) {
-      console.error(`Error getting product ${id} with relations and cache:`, error);
-      // Fallback to database on cache error
-      return this.repository.findByIdWithRelations(id);
+  async getProductsByBrand(
+    brandId: number,
+    options: {
+      limit?: number;
+      offset?: number;
+      sort?: string;
+      order?: 'asc' | 'desc';
     }
-  }
-
-  /**
-   * Get products by category, with caching
-   */
-  async getProductsByCategory(categoryId: number): Promise<Prisma.ProductGetPayload<{}>[]> {
-    const cacheKey = `products:category:${categoryId}`;
+  ): Promise<PaginatedResponse<Prisma.ProductGetPayload<{}>>> {
+    // Default pagination and sorting options
+    const limit = options.limit || 10;
+    const offset = options.offset || 0;
+    const sort = options.sort || 'name';
+    const order = options.order || 'asc';
     
     try {
-      // Use getOrSet utility to handle cache miss/hit logic
-      const productsJson = await getOrSet(
-        cacheKey,
-        async () => {
-          const products = await this.repository.findByCategory(categoryId);
-          return JSON.stringify(products);
-        },
-        this.DEFAULT_CACHE_TTL
-      );
+      const products = await this.repository.findByBrand(brandId);
+      const total = products.length;
       
-      return JSON.parse(productsJson);
-    } catch (error) {
-      console.error(`Error getting products for category ${categoryId} with cache:`, error);
-      // Fallback to database on cache error
-      return this.repository.findByCategory(categoryId);
-    }
-  }
-
-  /**
-   * Clear product cache after updates
-   */
-  async invalidateProductCache(id: number): Promise<void> {
-    const keys = [
-      `product:${id}`,
-      `product:${id}:with_relations`
-    ];
-    
-    try {
-      await redis.del(...keys);
+      // Apply sorting
+      products.sort((a, b) => {
+        if (sort === 'price') {
+          // Sort by price (numeric)
+          const priceA = typeof a.price === 'number' ? a.price : Number(a.price);
+          const priceB = typeof b.price === 'number' ? b.price : Number(b.price);
+          return order === 'asc' ? priceA - priceB : priceB - priceA;
+        } else {
+          // Default sort by name (string)
+          const nameA = a.name.toLowerCase();
+          const nameB = b.name.toLowerCase();
+          return order === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        }
+      });
       
-      // Also try to invalidate any category cache this product might be in
-      const product = await this.repository.findById(id);
-      if (product) {
-        await redis.del(`products:category:${product.categoryId}`);
-      }
+      // Apply pagination
+      const paginatedProducts = products.slice(offset, offset + limit);
+      
+      return {
+        data: paginatedProducts,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total
+        }
+      };
     } catch (error) {
-      console.error(`Error invalidating cache for product ${id}:`, error);
+      console.error(`Error getting products for brand ${brandId}:`, error);
+      throw error;
     }
   }
 
@@ -188,12 +210,5 @@ export class ProductService {
         imageUrl: related.imageUrl
       }))
     };
-  }
-
-  /**
-   * Get all products
-   */
-  async getAllProducts(): Promise<Prisma.ProductGetPayload<{}>[]> {
-    return this.repository.findAll();
   }
 }
