@@ -9,7 +9,7 @@
   - [X] Browsing products by category.
   - [X] Viewing detailed product information.
   - [X] Adding products to the cart.
-  - [ ] Simulating the checkout process.
+  - [X] Simulating the checkout process.
   - [ ] Updating product inventory upon purchase.
 - [ ] Write unit tests for the API endpoints.
 - [ ] Conduct load testing for baseline performance (without caching).

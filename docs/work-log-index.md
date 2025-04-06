@@ -28,3 +28,4 @@ This file provides a chronological overview of all work completed on the Redis C
 
 ### April 5, 2025
 - [Cart Management API Implementation](./work-logs/20250405-cart-management-api.md)
+- [Checkout Process API Implementation](./work-logs/20250405-checkout-process-api.md)

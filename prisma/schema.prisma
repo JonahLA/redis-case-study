@@ -11,20 +11,21 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
   description String
-  price       Decimal  @db.Decimal(10, 2)
-  stock       Int      @default(0)
+  price       Decimal     @db.Decimal(10, 2)
+  stock       Int         @default(0)
   imageUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   // Relationships
   categoryId  Int
-  category    Category @relation(fields: [categoryId], references: [id])
+  category    Category    @relation(fields: [categoryId], references: [id])
   brandId     Int
-  brand       Brand    @relation(fields: [brandId], references: [id])
+  brand       Brand       @relation(fields: [brandId], references: [id])
+  orderItems  OrderItem[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -51,4 +52,44 @@ model Brand {
   
   // Relationships
   products    Product[]
+}
+
+model Order {
+  id             String      @id
+  userId         String
+  status         String      // pending, completed, cancelled, etc.
+  subtotal       Decimal     @db.Decimal(10, 2)
+  tax            Decimal     @db.Decimal(10, 2)
+  shipping       Decimal     @db.Decimal(10, 2)
+  total          Decimal     @db.Decimal(10, 2)
+  shippingName   String
+  shippingStreet String
+  shippingCity   String
+  shippingState  String
+  shippingZip    String
+  shippingCountry String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relationships
+  items          OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     String
+  productId   Int
+  productName String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  subtotal    Decimal  @db.Decimal(10, 2)
+  
+  // Relationships
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
 }

@@ -211,4 +211,21 @@ export class ProductService {
       }))
     };
   }
+
+  /**
+   * Decrement product stock after order completion
+   */
+  async decrementStock(productId: number, quantity: number): Promise<void> {
+    // Get the current product information
+    const product = await this.getProductById(productId);
+    
+    // Verify sufficient stock is available
+    if (product.stock < quantity) {
+      throw new AppError(`Insufficient stock for product: ${product.name}`, 400);
+    }
+    
+    // Update the stock
+    const newStockLevel = product.stock - quantity;
+    await this.repository.updateStock(productId, newStockLevel);
+  }
 }
