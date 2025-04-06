@@ -25,3 +25,6 @@ This file provides a chronological overview of all work completed on the Redis C
 ### April 2, 2025
 - [Understanding Prisma ORM Benefits](./work-logs/20250402-prisma-orm-benefits.md)
 - [Product Detail API Implementation](./work-logs/20250402-product-detail-api.md)
+
+### April 5, 2025
+- [Cart Management API Implementation](./work-logs/20250405-cart-management-api.md)

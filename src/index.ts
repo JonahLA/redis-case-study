@@ -5,6 +5,7 @@ import healthRoutes from './controllers/healthController';
 import categoryRoutes from './controllers/categoryController';
 import brandRoutes from './controllers/brandController';
 import productRoutes from './controllers/productController';
+import cartRoutes from './controllers/cartController';
 import { disconnectPrisma } from './lib/prisma';
 import { disconnectRedis } from './lib/redis';
 
@@ -18,6 +19,7 @@ app.use('/health', healthRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Error handling
 app.use(errorMiddleware);

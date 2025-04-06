@@ -88,4 +88,26 @@ export class ProductRepository extends BaseRepository<Prisma.ProductGetPayload<{
       });
     });
   }
+
+  /**
+   * Find a product by ID
+   */
+  async findById(id: number): Promise<Prisma.ProductGetPayload<{}> | null> {
+    return prisma.product.findUnique({
+      where: { id }
+    });
+  }
+
+  /**
+   * Find products by IDs
+   */
+  async findByIds(ids: number[]): Promise<Prisma.ProductGetPayload<{}>[]> {
+    return prisma.product.findMany({
+      where: {
+        id: {
+          in: ids
+        }
+      }
+    });
+  }
 }

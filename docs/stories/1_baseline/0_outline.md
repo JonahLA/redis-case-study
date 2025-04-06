@@ -8,7 +8,7 @@
 - [ ] Create API endpoints for:
   - [X] Browsing products by category.
   - [X] Viewing detailed product information.
-  - [ ] Adding products to the cart.
+  - [X] Adding products to the cart.
   - [ ] Simulating the checkout process.
   - [ ] Updating product inventory upon purchase.
 - [ ] Write unit tests for the API endpoints.
