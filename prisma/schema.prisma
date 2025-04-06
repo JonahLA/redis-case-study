@@ -26,6 +26,7 @@ model Product {
   brandId     Int
   brand       Brand       @relation(fields: [brandId], references: [id])
   orderItems  OrderItem[]
+  auditLogs   InventoryAudit[]
 
   @@index([categoryId])
   @@index([brandId])
@@ -92,4 +93,20 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+model InventoryAudit {
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  previousStock Int
+  newStock     Int
+  adjustment   Int
+  reason       String?
+  timestamp    DateTime  @default(now())
+  
+  // Relationships
+  product      Product   @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([timestamp])
 }

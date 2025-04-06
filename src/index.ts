@@ -7,6 +7,7 @@ import brandRoutes from './controllers/brandController';
 import productRoutes from './controllers/productController';
 import cartRoutes from './controllers/cartController';
 import orderRoutes from './controllers/orderController';
+import inventoryRoutes from './controllers/inventoryController';
 import { disconnectPrisma } from './lib/prisma';
 import { disconnectRedis } from './lib/redis';
 
@@ -21,6 +22,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/inventory', inventoryRoutes);
 app.use('/api', orderRoutes);
 
 // Error handling

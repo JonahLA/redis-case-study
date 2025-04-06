@@ -132,6 +132,35 @@ docker-compose down
 docker-compose down -v
 ```
 
+### Database Management
+
+#### Running Prisma Migrations
+
+To create a new migration based on schema changes:
+```bash
+npx prisma migrate dev --name <migration-name>
+```
+
+To apply migrations to a production environment:
+```bash
+npx prisma migrate deploy
+```
+
+To reset your database (caution: this will delete all data):
+```bash
+npx prisma migrate reset
+```
+
+To generate Prisma client after schema changes:
+```bash
+npx prisma generate
+```
+
+To view your database with Prisma Studio:
+```bash
+npx prisma studio
+```
+
 ### Work Log
 
 To use the work log script:
