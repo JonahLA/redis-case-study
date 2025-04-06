@@ -7,7 +7,7 @@
 - [X] Set up Redis as a caching layer.
 - [ ] Create API endpoints for:
   - [X] Browsing products by category.
-  - [ ] Viewing detailed product information.
+  - [X] Viewing detailed product information.
   - [ ] Adding products to the cart.
   - [ ] Simulating the checkout process.
   - [ ] Updating product inventory upon purchase.
