@@ -74,8 +74,19 @@ function createRedisClient(): RedisClient {
   }
 
   // Regular client for non-test environments
-  const options = getRedisOptions();
-  const client = new Redis(options);
+  const redisUrl = process.env.REDIS_URL;
+  let client: RedisClient;
+  
+  if (redisUrl) {
+    // When using REDIS_URL, create client with the URL directly
+    client = new Redis(redisUrl);
+    console.log(`Connecting to Redis with URL: ${redisUrl}`);
+  } else {
+    // Otherwise use individual connection parameters
+    const options = getRedisOptions();
+    client = new Redis(options);
+    console.log(`Connecting to Redis at ${options.host}:${options.port}`);
+  }
   
   // Set up event listeners
   client.on('connect', () => {

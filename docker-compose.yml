@@ -10,10 +10,14 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
+    env_file:
+      - .env
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/redis_case_study
       - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_healthy
@@ -26,6 +30,12 @@ services:
              npx prisma migrate deploy && 
              npx prisma generate && 
              npm run dev"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   postgres:
     image: postgres:14-alpine
@@ -44,6 +54,15 @@ services:
       retries: 5
     networks:
       - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 256M
+    labels:
+      - "com.example.description=PostgreSQL Database"
+      - "com.example.service=database"
 
   redis:
     image: redis:7-alpine
@@ -58,6 +77,15 @@ services:
       retries: 5
     networks:
       - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.15'
+          memory: 128M
+    labels:
+      - "com.example.description=Redis Cache"
+      - "com.example.service=cache"
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -69,6 +97,12 @@ services:
       - redis
     networks:
       - app-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.10'
+          memory: 64M
 
 networks:
   app-network:
