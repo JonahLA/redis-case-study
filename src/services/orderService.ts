@@ -1,113 +1,83 @@
 import { OrderRepository } from '../repositories/orderRepository';
 import { CartService } from './cartService';
-import { ProductService } from './productService';
+import { InventoryService } from './inventoryService';
 import { AppError } from '../middleware/errorMiddleware';
-
-interface ShippingAddress {
-  name: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-}
-
-interface PaymentDetails {
-  method: string;
-  simulatePayment: boolean;
-}
-
-interface OrderItem {
-  productId: number;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-interface Order {
-  orderId: string;
-  userId: string;
-  status: string;
-  createdAt: string;
-  items: OrderItem[];
-  subtotal: number;
-  tax: number;
-  shipping: number;
-  total: number;
-  shippingAddress: ShippingAddress;
-}
+import { Order, ShippingAddress, PaymentDetails, OrderItem } from '../types/order';
 
 export class OrderService {
   private repository: OrderRepository;
   private cartService: CartService;
-  private productService: ProductService;
-  
+  private inventoryService: InventoryService;
+
   constructor() {
     this.repository = new OrderRepository();
     this.cartService = new CartService();
-    this.productService = new ProductService();
+    this.inventoryService = new InventoryService();
   }
 
-  /**
-   * Create a new order from user's cart
-   */
   async createOrder(
-    userId: string, 
-    shippingAddress: ShippingAddress, 
+    userId: string,
+    shippingAddress: ShippingAddress,
     paymentDetails: PaymentDetails
   ): Promise<Order> {
-    // Get user's cart
-    const cart = await this.cartService.getCart(userId);
-    
-    // Verify cart is not empty
-    if (!cart.items || cart.items.length === 0) {
-      throw new AppError('Cannot checkout with an empty cart', 400);
-    }
-    
-    // Verify all products are in stock
-    const outOfStockItems = await this.checkStockAvailability(cart.items);
-    if (outOfStockItems.length > 0) {
-      throw new AppError(
-        `The following items are out of stock: ${outOfStockItems.join(', ')}`,
-        400
-      );
-    }
-    
-    // Calculate order totals
-    const subtotal = cart.subtotal;
-    const tax = subtotal * 0.08; // Assuming 8% tax rate
-    const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-    const total = subtotal + tax + shipping;
-    
-    // Process payment (simulated)
-    await this.processPayment(paymentDetails, total);
-    
-    // Create order in database
-    const order = await this.repository.createOrder({
-      userId,
-      items: cart.items.map(item => ({
+    try {
+      // Get user's cart
+      const cart = await this.cartService.getCart(userId);
+
+      // Verify cart is not empty
+      if (!cart.items || cart.items.length === 0) {
+        throw new AppError('Cannot checkout with an empty cart', 400);
+      }
+
+      // Process payment (simulated)
+      await this.processPayment(paymentDetails, cart.total);
+      
+      // Create order items from cart items
+      const orderItems: OrderItem[] = cart.items.map(item => ({
         productId: item.product.id,
         productName: item.product.name,
         quantity: item.quantity,
         unitPrice: item.product.price,
-        subtotal: item.product.price * item.quantity
-      })),
-      subtotal,
-      tax,
-      shipping,
-      total,
-      shippingAddress,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    });
-    
-    // Clear the cart after successful order
-    await this.cartService.clearCart(userId);
-    
-    return order;
+        subtotal: item.subtotal
+      }));
+
+      // Create the order
+      const order = await this.repository.createOrder({
+        userId,
+        items: orderItems,
+        subtotal: cart.subtotal,
+        tax: cart.tax,
+        shipping: cart.total - cart.subtotal - cart.tax,
+        total: cart.total,
+        shippingAddress
+      });
+
+      // Update inventory
+      await this.inventoryService.adjustInventoryBatch(
+        orderItems.map(item => ({
+          productId: item.productId,
+          quantity: -item.quantity,
+          reason: `Order #${order.orderId}`
+        }))
+      );
+
+      // Clear the cart
+      await this.cartService.clearCart(userId);
+
+      return order;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      if (error instanceof Error) {
+        if (error.message.includes('stock')) {
+          throw new AppError('Insufficient stock for one or more items', 400);
+        }
+      }
+      throw new AppError('Failed to create order', 500);
+    }
   }
-  
+
   /**
    * Get all orders for a user
    */
@@ -145,29 +115,10 @@ export class OrderService {
       throw new AppError(`Order is already ${order.status}`, 400);
     }
     
-    // Update inventory (decrement stock for each product)
-    await this.updateInventory(order.items);
-    
     // Update order status to completed
     const updatedOrder = await this.repository.updateStatus(orderId, 'completed');
     
     return updatedOrder;
-  }
-  
-  /**
-   * Check if all products in cart are available in sufficient quantity
-   */
-  private async checkStockAvailability(items: any[]): Promise<string[]> {
-    const outOfStockItems: string[] = [];
-    
-    for (const item of items) {
-      const product = await this.productService.getProductById(item.product.id);
-      if (product.stock < item.quantity) {
-        outOfStockItems.push(product.name);
-      }
-    }
-    
-    return outOfStockItems;
   }
   
   /**
@@ -184,14 +135,5 @@ export class OrderService {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return true;
-  }
-  
-  /**
-   * Update inventory levels after order completion
-   */
-  private async updateInventory(items: OrderItem[]): Promise<void> {
-    for (const item of items) {
-      await this.productService.decrementStock(item.productId, item.quantity);
-    }
   }
 }

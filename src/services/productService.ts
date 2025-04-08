@@ -104,12 +104,15 @@ export class ProductService {
           total,
           limit,
           offset,
-          hasMore: offset + limit < total
+          hasMore: offset + limit < total // This is correct - if we're at position 1 and limit is 2, 1+2 < 3 means there's more
         }
       };
     } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       console.error(`Error getting products for category ${categoryId}:`, error);
-      throw error;
+      throw new AppError('Failed to fetch products', 500);
     }
   }
 
@@ -159,12 +162,15 @@ export class ProductService {
           total,
           limit,
           offset,
-          hasMore: offset + limit < total
+          hasMore: offset + limit < total // Using same logic as above
         }
       };
     } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
       console.error(`Error getting products for brand ${brandId}:`, error);
-      throw error;
+      throw new AppError('Failed to fetch products', 500);
     }
   }
 
@@ -224,8 +230,16 @@ export class ProductService {
       throw new AppError(`Insufficient stock for product: ${product.name}`, 400);
     }
     
-    // Update the stock
-    const newStockLevel = product.stock - quantity;
-    await this.repository.updateStock(productId, newStockLevel);
+    try {
+      // Update the stock
+      const newStockLevel = product.stock - quantity;
+      await this.repository.updateStock(productId, newStockLevel);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      console.error(`Error updating stock for product ${productId}:`, error);
+      throw new AppError('Failed to update product stock', 500);
+    }
   }
 }

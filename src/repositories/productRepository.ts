@@ -200,10 +200,10 @@ export class ProductRepository extends BaseRepository<Product> {
         where: {
           id: { in: productIds }
         }
-      });
+      }) as Product[];
 
       // Create a map for easy lookup
-      const productMap = new Map(products.map(p => [p.id, p]));
+      const productMap = new Map<number, Product>(products.map(p => [p.id, p]));
 
       // Verify all products exist and have sufficient stock
       for (const item of items) {
@@ -229,7 +229,7 @@ export class ProductRepository extends BaseRepository<Product> {
         const updated = await tx.product.update({
           where: { id: item.id },
           data: { stock: newStock },
-        });
+        }) as Product;
         
         results.push(updated);
       }

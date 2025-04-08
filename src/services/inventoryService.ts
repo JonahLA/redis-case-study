@@ -186,6 +186,11 @@ export class InventoryService {
     try {
       const productIds = items.map(item => item.productId);
       const products = await this.repository.findByIds(productIds);
+
+      // Handle empty batch case after repository call
+      if (items.length === 0) {
+        return [];
+      }
       
       // Create a map for easy lookup
       const productMap = new Map(products.map(p => [p.id, p]));

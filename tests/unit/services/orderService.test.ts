@@ -1,13 +1,15 @@
 import { OrderService } from '../../../src/services/orderService';
 import { OrderRepository } from '../../../src/repositories/orderRepository';
 import { CartService } from '../../../src/services/cartService';
+import { ProductService } from '../../../src/services/productService';
 import { InventoryService } from '../../../src/services/inventoryService';
 import { AppError } from '../../../src/middleware/errorMiddleware';
-import { Prisma } from '@prisma/client';
+import { ShippingAddress, PaymentDetails } from '../../../src/types/order';
 
 // Mock the dependencies
 jest.mock('../../../src/repositories/orderRepository');
 jest.mock('../../../src/services/cartService');
+jest.mock('../../../src/services/productService');
 jest.mock('../../../src/services/inventoryService');
 
 describe('OrderService', () => {
@@ -15,13 +17,49 @@ describe('OrderService', () => {
   let orderService: OrderService;
   let mockOrderRepository: jest.Mocked<OrderRepository>;
   let mockCartService: jest.Mocked<CartService>;
+  let mockProductService: jest.Mocked<ProductService>;
   let mockInventoryService: jest.Mocked<InventoryService>;
   
   // Test data
-  const testUserId = 'user-123';
-  const testCartId = 'cart-123';
-  const testOrderId = 1;
+  const testUserId = 'user123';
+  const testOrderId = 'order123';
+  const testCartId = 'cart123';
   
+  const mockAddress: ShippingAddress = {
+    name: 'John Doe',
+    street: '123 Main St',
+    city: 'Test City',
+    state: 'Test State',
+    zipCode: '12345',
+    country: 'Test Country'
+  };
+
+  const mockPaymentDetails: PaymentDetails = {
+    method: 'credit_card',
+    simulatePayment: true
+  };
+  
+  const mockOrder = {
+    orderId: testOrderId,
+    userId: testUserId,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    items: [
+      {
+        productId: 1,
+        productName: 'Test Product',
+        quantity: 2,
+        unitPrice: 10,
+        subtotal: 20
+      }
+    ],
+    subtotal: 20,
+    tax: 1.6,
+    shipping: 10,
+    total: 31.6,
+    shippingAddress: mockAddress
+  };
+
   const mockCart = {
     id: testCartId,
     items: [
@@ -32,7 +70,7 @@ describe('OrderService', () => {
           id: 1,
           name: 'Test Product 1',
           price: 19.99,
-          imageUrl: 'test-url-1.jpg'
+          imageUrl: 'test1.jpg'
         },
         subtotal: 39.98
       },
@@ -43,43 +81,15 @@ describe('OrderService', () => {
           id: 2,
           name: 'Test Product 2',
           price: 29.99,
-          imageUrl: 'test-url-2.jpg'
+          imageUrl: 'test2.jpg'
         },
         subtotal: 29.99
       }
     ],
     subtotal: 69.97,
-    tax: 5.6,
+    tax: 5.60,
     total: 75.57,
     itemCount: 3
-  };
-  
-  const mockOrderItems = [
-    {
-      productId: 1,
-      quantity: 2,
-      price: new Prisma.Decimal(19.99),
-      subtotal: new Prisma.Decimal(39.98)
-    },
-    {
-      productId: 2,
-      quantity: 1,
-      price: new Prisma.Decimal(29.99),
-      subtotal: new Prisma.Decimal(29.99)
-    }
-  ];
-  
-  const mockOrder = {
-    id: testOrderId,
-    userId: testUserId,
-    subtotal: new Prisma.Decimal(69.97),
-    tax: new Prisma.Decimal(5.6),
-    total: new Prisma.Decimal(75.57),
-    orderItems: mockOrderItems,
-    status: 'pending',
-    shippingAddress: '123 Test St, Test City',
-    createdAt: new Date(),
-    updatedAt: new Date()
   };
 
   beforeEach(() => {
@@ -89,32 +99,32 @@ describe('OrderService', () => {
     // Set up the mocked dependencies
     mockOrderRepository = new OrderRepository() as jest.Mocked<OrderRepository>;
     mockCartService = new CartService() as jest.Mocked<CartService>;
+    mockProductService = new ProductService() as jest.Mocked<ProductService>;
     mockInventoryService = new InventoryService() as jest.Mocked<InventoryService>;
     
     // Create a new instance of OrderService for each test
     orderService = new OrderService();
     
     // Replace the internal dependencies with our mocks
-    (orderService as any).orderRepository = mockOrderRepository;
+    (orderService as any).repository = mockOrderRepository;
     (orderService as any).cartService = mockCartService;
+    (orderService as any).productService = mockProductService;
     (orderService as any).inventoryService = mockInventoryService;
   });
 
   describe('createOrder', () => {
-    const mockAddress = '123 Test St, Test City';
-    
     it('should successfully create an order', async () => {
       // Arrange
-      mockCartService.getCart = jest.fn().mockResolvedValue(mockCart);
+      mockCartService.getCart = jest.fn().mockResolvedValue({ ...mockCart, id: testCartId });
       mockOrderRepository.createOrder = jest.fn().mockResolvedValue(mockOrder);
       mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue(undefined);
       mockCartService.clearCart = jest.fn().mockResolvedValue({ ...mockCart, items: [] });
       
       // Act
-      const result = await orderService.createOrder(testUserId, testCartId, mockAddress);
+      const result = await orderService.createOrder(testUserId, mockAddress, mockPaymentDetails);
       
       // Assert
-      expect(mockCartService.getCart).toHaveBeenCalledWith(testCartId);
+      expect(mockCartService.getCart).toHaveBeenCalledWith(testUserId);
       expect(mockOrderRepository.createOrder).toHaveBeenCalledWith({
         userId: testUserId,
         shippingAddress: mockAddress,
@@ -140,7 +150,7 @@ describe('OrderService', () => {
         { productId: 1, quantity: -2, reason: `Order #${testOrderId}` },
         { productId: 2, quantity: -1, reason: `Order #${testOrderId}` }
       ]);
-      expect(mockCartService.clearCart).toHaveBeenCalledWith(testCartId);
+      expect(mockCartService.clearCart).toHaveBeenCalledWith(testUserId);
       expect(result).toEqual(mockOrder);
     });
     
@@ -156,8 +166,8 @@ describe('OrderService', () => {
       });
       
       // Act & Assert
-      await expect(orderService.createOrder(testUserId, testCartId, mockAddress))
-        .rejects.toThrow(new AppError('Cannot create order with empty cart', 400));
+      await expect(orderService.createOrder(testUserId, mockAddress, mockPaymentDetails))
+        .rejects.toThrow(new AppError('Cannot checkout with an empty cart', 400));
     });
     
     it('should throw an error when cart retrieval fails', async () => {
@@ -167,7 +177,7 @@ describe('OrderService', () => {
       });
       
       // Act & Assert
-      await expect(orderService.createOrder(testUserId, testCartId, mockAddress))
+      await expect(orderService.createOrder(testUserId, mockAddress, mockPaymentDetails))
         .rejects.toThrow(new AppError('Failed to retrieve cart', 500));
     });
     
@@ -179,7 +189,7 @@ describe('OrderService', () => {
       });
       
       // Act & Assert
-      await expect(orderService.createOrder(testUserId, testCartId, mockAddress))
+      await expect(orderService.createOrder(testUserId, mockAddress, mockPaymentDetails))
         .rejects.toThrow(new AppError('Failed to create order', 500));
     });
     
@@ -192,7 +202,7 @@ describe('OrderService', () => {
       });
       
       // Act & Assert
-      await expect(orderService.createOrder(testUserId, testCartId, mockAddress))
+      await expect(orderService.createOrder(testUserId, mockAddress, mockPaymentDetails))
         .rejects.toThrow(new AppError('Failed to adjust inventory', 500));
     });
   });
@@ -200,19 +210,19 @@ describe('OrderService', () => {
   describe('getOrdersByUser', () => {
     it('should return orders for a user', async () => {
       // Arrange
-      mockOrderRepository.findByUser = jest.fn().mockResolvedValue([mockOrder]);
+      mockOrderRepository.findByUserId = jest.fn().mockResolvedValue([mockOrder]);
       
       // Act
       const result = await orderService.getOrdersByUser(testUserId);
       
       // Assert
-      expect(mockOrderRepository.findByUser).toHaveBeenCalledWith(testUserId);
+      expect(mockOrderRepository.findByUserId).toHaveBeenCalledWith(testUserId); 
       expect(result).toEqual([mockOrder]);
     });
     
     it('should throw an error when order retrieval fails', async () => {
       // Arrange
-      mockOrderRepository.findByUser = jest.fn().mockImplementation(() => {
+      mockOrderRepository.findByUserId = jest.fn().mockImplementation(() => {
         throw new Error('Database error');
       });
       
@@ -240,7 +250,7 @@ describe('OrderService', () => {
       mockOrderRepository.findById = jest.fn().mockResolvedValue(null);
       
       // Act & Assert
-      await expect(orderService.getOrderById(999, testUserId))
+      await expect(orderService.getOrderById('999', testUserId))
         .rejects.toThrow(new AppError('Order not found', 404));
     });
     
@@ -272,7 +282,7 @@ describe('OrderService', () => {
     it('should mark order as completed', async () => {
       // Arrange
       mockOrderRepository.findById = jest.fn().mockResolvedValue(mockOrder);
-      mockOrderRepository.updateOrder = jest.fn().mockResolvedValue({
+      mockOrderRepository.updateStatus = jest.fn().mockResolvedValue({
         ...mockOrder,
         status: 'completed'
       });
@@ -282,9 +292,7 @@ describe('OrderService', () => {
       
       // Assert
       expect(mockOrderRepository.findById).toHaveBeenCalledWith(testOrderId);
-      expect(mockOrderRepository.updateOrder).toHaveBeenCalledWith(testOrderId, {
-        status: 'completed'
-      });
+      expect(mockOrderRepository.updateStatus).toHaveBeenCalledWith(testOrderId, 'completed');
       expect(result.status).toBe('completed');
     });
     
@@ -293,7 +301,7 @@ describe('OrderService', () => {
       mockOrderRepository.findById = jest.fn().mockResolvedValue(null);
       
       // Act & Assert
-      await expect(orderService.completeOrder(999, testUserId))
+      await expect(orderService.completeOrder('999', testUserId))
         .rejects.toThrow(new AppError('Order not found', 404));
     });
     
@@ -324,7 +332,7 @@ describe('OrderService', () => {
     it('should throw an error when order update fails', async () => {
       // Arrange
       mockOrderRepository.findById = jest.fn().mockResolvedValue(mockOrder);
-      mockOrderRepository.updateOrder = jest.fn().mockImplementation(() => {
+      mockOrderRepository.updateStatus = jest.fn().mockImplementation(() => {
         throw new Error('Database error');
       });
       

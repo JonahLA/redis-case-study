@@ -1,65 +1,96 @@
-import { Prisma } from '@prisma/client';
-import { BaseRepository } from './baseRepository';
-import prisma from '../lib/prisma';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import prisma from '../lib/prisma';
+import { Order, OrderItem } from '../types/order';
 
-interface OrderItem {
-  productId: number;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
+// Define types for the Prisma model
+type OrderWithItems = Prisma.OrderGetPayload<{
+  include: { 
+    items: {
+      include: {
+        product: true
+      }
+    }
+  }
+}>;
+
+type OrderModel = Prisma.OrderGetPayload<{}>;
+
+// Create a base repository for string IDs
+abstract class StringIdRepository<T> {
+  protected abstract model: any;
+
+  async findById(id: string): Promise<T | null> {
+    return this.model.findUnique({
+      where: { id },
+    }) as Promise<T | null>;
+  }
+
+  async findAll(): Promise<T[]> {
+    return this.model.findMany() as Promise<T[]>;
+  }
+
+  async create(data: any): Promise<T> {
+    return this.model.create({
+      data,
+    }) as Promise<T>;
+  }
+
+  async update(id: string, data: any): Promise<T> {
+    return this.model.update({
+      where: { id },
+      data,
+    }) as Promise<T>;
+  }
+
+  async delete(id: string): Promise<T> {
+    return this.model.delete({
+      where: { id },
+    }) as Promise<T>;
+  }
+
+  async transaction<R>(fn: (tx: any) => Promise<R>): Promise<R> {
+    return prisma.$transaction(fn);
+  }
 }
 
-interface OrderCreateInput {
-  userId: string;
-  items: OrderItem[];
-  subtotal: number;
-  tax: number;
-  shipping: number;
-  total: number;
-  shippingAddress: {
-    name: string;
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  status: string;
-  createdAt: string;
-}
-
-export class OrderRepository extends BaseRepository<Prisma.OrderGetPayload<{}>> {
+export class OrderRepository extends StringIdRepository<OrderModel> {
   protected model = prisma.order;
 
-  /**
-   * Create a new order with order items
-   */
-  async createOrder(data: OrderCreateInput): Promise<any> {
-    // Generate a unique order ID (uuid)
-    const orderId = uuidv4();
-    
-    return this.transaction(async (tx) => {
-      // Create the order
-      const order = await tx.order.create({
+  async createOrder(orderData: {
+    userId: string;
+    items: OrderItem[];
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+    shippingAddress: {
+      name: string;
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    };
+  }): Promise<Order> {
+    try {
+      const order = await this.model.create({
         data: {
-          id: orderId,
-          userId: data.userId,
-          status: data.status,
-          subtotal: data.subtotal,
-          tax: data.tax,
-          shipping: data.shipping,
-          total: data.total,
-          shippingName: data.shippingAddress.name,
-          shippingStreet: data.shippingAddress.street,
-          shippingCity: data.shippingAddress.city,
-          shippingState: data.shippingAddress.state,
-          shippingZip: data.shippingAddress.zipCode,
-          shippingCountry: data.shippingAddress.country,
-          // Create all order items in a single transaction
+          id: uuidv4(),
+          userId: orderData.userId,
+          status: 'pending',
+          subtotal: orderData.subtotal,
+          tax: orderData.tax,
+          shipping: orderData.shipping,
+          total: orderData.total,
+          shippingName: orderData.shippingAddress.name,
+          shippingStreet: orderData.shippingAddress.street,
+          shippingCity: orderData.shippingAddress.city,
+          shippingState: orderData.shippingAddress.state,
+          shippingZip: orderData.shippingAddress.zipCode,
+          shippingCountry: orderData.shippingAddress.country,
           items: {
-            create: data.items.map(item => ({
+            create: orderData.items.map(item => ({
               productId: item.productId,
               productName: item.productName,
               quantity: item.quantity,
@@ -68,163 +99,88 @@ export class OrderRepository extends BaseRepository<Prisma.OrderGetPayload<{}>> 
             }))
           }
         },
-        // Include the items in the response
         include: {
-          items: true
+          items: {
+            include: {
+              product: true
+            }
+          }
+        }
+      }) as OrderWithItems;
+
+      return this.mapToOrder(order);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findByUserId(userId: string): Promise<Order[]> {
+    try {
+      const orders = await this.model.findMany({
+        where: { userId },
+        include: {
+          items: {
+            include: {
+              product: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       });
-      
-      // Format and return the response according to the API contract
-      return {
-        orderId: order.id,
-        userId: order.userId,
-        status: order.status,
-        createdAt: order.createdAt.toISOString(),
-        items: order.items.map(item => ({
-          productId: item.productId,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          subtotal: item.subtotal
-        })),
-        subtotal: order.subtotal,
-        tax: order.tax,
-        shipping: order.shipping,
-        total: order.total,
-        shippingAddress: {
-          name: order.shippingName,
-          street: order.shippingStreet,
-          city: order.shippingCity,
-          state: order.shippingState,
-          zipCode: order.shippingZip,
-          country: order.shippingCountry
-        }
-      };
-    });
-  }
 
-  /**
-   * Find an order by ID with its items
-   */
-  async findById(id: string): Promise<any> {
-    const order = await this.model.findUnique({
-      where: { id },
-      include: {
-        items: true
-      }
-    });
-    
-    if (!order) {
-      return null;
+      return orders.map(order => this.mapToOrder(order));
+    } catch (error) {
+      throw error;
     }
-    
-    // Format and return the response according to the API contract
-    return {
-      orderId: order.id,
-      userId: order.userId,
-      status: order.status,
-      createdAt: order.createdAt.toISOString(),
-      items: order.items.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal
-      })),
-      subtotal: order.subtotal,
-      tax: order.tax,
-      shipping: order.shipping,
-      total: order.total,
-      shippingAddress: {
-        name: order.shippingName,
-        street: order.shippingStreet,
-        city: order.shippingCity,
-        state: order.shippingState,
-        zipCode: order.shippingZip,
-        country: order.shippingCountry
-      }
-    };
   }
 
-  /**
-   * Find all orders for a specific user
-   */
-  async findByUserId(userId: string): Promise<any[]> {
-    const orders = await this.model.findMany({
-      where: { userId },
-      include: {
-        items: true
+  async updateStatus(orderId: string, status: string): Promise<Order> {
+    try {
+      const order = await this.model.update({
+        where: { id: orderId },
+        data: { status },
+        include: {
+          items: {
+            include: {
+              product: true
+            }
+          }
+        }
+      });
+
+      return this.mapToOrder(order);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private mapToOrder(dbOrder: OrderWithItems): Order {
+    return {
+      orderId: dbOrder.id,
+      userId: dbOrder.userId,
+      status: dbOrder.status,
+      items: dbOrder.items.map(item => ({
+        productId: item.productId,
+        productName: item.product?.name || item.productName || 'Unknown Product',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toNumber(),
+        subtotal: item.subtotal.toNumber()
+      })),
+      subtotal: dbOrder.subtotal.toNumber(),
+      tax: dbOrder.tax.toNumber(),
+      shipping: dbOrder.shipping.toNumber(),
+      total: dbOrder.total.toNumber(),
+      shippingAddress: {
+        name: dbOrder.shippingName,
+        street: dbOrder.shippingStreet,
+        city: dbOrder.shippingCity,
+        state: dbOrder.shippingState,
+        zipCode: dbOrder.shippingZip,
+        country: dbOrder.shippingCountry
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-    
-    // Format and return the response according to the API contract
-    return orders.map(order => ({
-      orderId: order.id,
-      userId: order.userId,
-      status: order.status,
-      createdAt: order.createdAt.toISOString(),
-      items: order.items.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal
-      })),
-      subtotal: order.subtotal,
-      tax: order.tax,
-      shipping: order.shipping,
-      total: order.total,
-      shippingAddress: {
-        name: order.shippingName,
-        street: order.shippingStreet,
-        city: order.shippingCity,
-        state: order.shippingState,
-        zipCode: order.shippingZip,
-        country: order.shippingCountry
-      }
-    }));
-  }
-
-  /**
-   * Update order status
-   */
-  async updateStatus(id: string, status: string): Promise<any> {
-    const updatedOrder = await this.model.update({
-      where: { id },
-      data: { status },
-      include: {
-        items: true
-      }
-    });
-    
-    // Format and return the response according to the API contract
-    return {
-      orderId: updatedOrder.id,
-      userId: updatedOrder.userId,
-      status: updatedOrder.status,
-      createdAt: updatedOrder.createdAt.toISOString(),
-      items: updatedOrder.items.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: item.subtotal
-      })),
-      subtotal: updatedOrder.subtotal,
-      tax: updatedOrder.tax,
-      shipping: updatedOrder.shipping,
-      total: updatedOrder.total,
-      shippingAddress: {
-        name: updatedOrder.shippingName,
-        street: updatedOrder.shippingStreet,
-        city: updatedOrder.shippingCity,
-        state: updatedOrder.shippingState,
-        zipCode: updatedOrder.shippingZip,
-        country: updatedOrder.shippingCountry
-      }
+      createdAt: dbOrder.createdAt.toISOString()
     };
   }
 }
