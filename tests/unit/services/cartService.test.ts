@@ -121,14 +121,17 @@ describe('CartService', () => {
     });
     
     it('should handle errors when fetching cart', async () => {
-      // Arrange
-      // Mock the getCart method to throw an error when called
-      jest.spyOn(cartService, 'getCart').mockImplementationOnce(() => {
-        throw new Error('Storage error');
-      });
+      // Arrange - Mock the storage to throw an error
+      const mockMap = {
+        get: jest.fn().mockImplementationOnce(() => {
+          throw new Error('Storage error');
+        })
+      };
+      (CartService as any).cartsStorage = mockMap;
       
       // Act & Assert
-      await expect(cartService.getCart(testCartId)).rejects.toThrow('Storage error');
+      await expect(cartService.getCart(testCartId))
+        .rejects.toThrow(new AppError('Failed to fetch cart data', 500));
     });
   });
 
