@@ -10,6 +10,7 @@ describe('CategoryService', () => {
   // Mock instances
   let categoryService: CategoryService;
   let mockCategoryRepository: jest.Mocked<CategoryRepository>;
+  let consoleSpy: jest.SpyInstance;
   
   // Test data
   const mockCategories = [
@@ -72,6 +73,9 @@ describe('CategoryService', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Set up the mocked repository
     mockCategoryRepository = new CategoryRepository() as jest.Mocked<CategoryRepository>;
     
@@ -80,6 +84,11 @@ describe('CategoryService', () => {
     
     // Replace the internal repository with our mock
     (categoryService as any).repository = mockCategoryRepository;
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   describe('getAllCategories', () => {

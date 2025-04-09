@@ -13,6 +13,7 @@ describe('InventoryService', () => {
   let inventoryService: InventoryService;
   let mockProductRepository: jest.Mocked<ProductRepository>;
   let mockAuditRepository: jest.Mocked<InventoryAuditRepository>;
+  let consoleSpy: jest.SpyInstance;
   
   // Test data
   const testProductId = 1;
@@ -53,6 +54,9 @@ describe('InventoryService', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Set up the mocked repositories
     mockProductRepository = new ProductRepository() as jest.Mocked<ProductRepository>;
     mockAuditRepository = new InventoryAuditRepository() as jest.Mocked<InventoryAuditRepository>;
@@ -63,6 +67,11 @@ describe('InventoryService', () => {
     // Replace the internal repositories with our mocks
     (inventoryService as any).repository = mockProductRepository;
     (inventoryService as any).auditRepository = mockAuditRepository;
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   describe('getInventory', () => {

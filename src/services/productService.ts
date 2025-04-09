@@ -104,7 +104,7 @@ export class ProductService {
           total,
           limit,
           offset,
-          hasMore: offset + limit < total // This is correct - if we're at position 1 and limit is 2, 1+2 < 3 means there's more
+          hasMore: offset + limit < total
         }
       };
     } catch (error) {

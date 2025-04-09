@@ -2,7 +2,23 @@ import { OrderRepository } from '../repositories/orderRepository';
 import { CartService } from './cartService';
 import { InventoryService } from './inventoryService';
 import { AppError } from '../middleware/errorMiddleware';
-import { Order, ShippingAddress, PaymentDetails, OrderItem } from '../types/order';
+import { Prisma } from '@prisma/client';
+
+type OrderWithRelations = Prisma.OrderGetPayload<{
+  include: { 
+    items: {
+      include: {
+        product: true
+      }
+    }
+  }
+}>;
+
+// Payment simulation type - keeping this as it's not a DB concern
+interface PaymentDetails {
+  method: string;
+  simulatePayment: boolean;
+}
 
 export class OrderService {
   private repository: OrderRepository;
@@ -17,9 +33,16 @@ export class OrderService {
 
   async createOrder(
     userId: string,
-    shippingAddress: ShippingAddress,
+    shippingAddress: {
+      name: string;
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    },
     paymentDetails: PaymentDetails
-  ): Promise<Order> {
+  ): Promise<OrderWithRelations> {
     try {
       // Get user's cart
       const cart = await this.cartService.getCart(userId);
@@ -33,7 +56,7 @@ export class OrderService {
       await this.processPayment(paymentDetails, cart.total);
       
       // Create order items from cart items
-      const orderItems: OrderItem[] = cart.items.map(item => ({
+      const orderItems = cart.items.map(item => ({
         productId: item.product.id,
         productName: item.product.name,
         quantity: item.quantity,
@@ -57,7 +80,7 @@ export class OrderService {
         orderItems.map(item => ({
           productId: item.productId,
           quantity: -item.quantity,
-          reason: `Order #${order.orderId}`
+          reason: `Order #${order.id}`
         }))
       );
 
@@ -81,14 +104,14 @@ export class OrderService {
   /**
    * Get all orders for a user
    */
-  async getOrdersByUser(userId: string): Promise<Order[]> {
+  async getOrdersByUser(userId: string): Promise<OrderWithRelations[]> {
     return this.repository.findByUserId(userId);
   }
   
   /**
    * Get order details by ID
    */
-  async getOrderById(orderId: string, userId: string): Promise<Order> {
+  async getOrderById(orderId: string, userId: string): Promise<OrderWithRelations> {
     const order = await this.repository.findById(orderId);
     
     if (!order) {
@@ -102,11 +125,11 @@ export class OrderService {
     
     return order;
   }
-  
+
   /**
    * Complete an order (for simulation purposes)
    */
-  async completeOrder(orderId: string, userId: string): Promise<Order> {
+  async completeOrder(orderId: string, userId: string): Promise<OrderWithRelations> {
     // Get the order and verify ownership
     const order = await this.getOrderById(orderId, userId);
     
@@ -116,11 +139,9 @@ export class OrderService {
     }
     
     // Update order status to completed
-    const updatedOrder = await this.repository.updateStatus(orderId, 'completed');
-    
-    return updatedOrder;
+    return this.repository.updateStatus(orderId, 'completed');
   }
-  
+
   /**
    * Simulate payment processing
    */

@@ -1,12 +1,12 @@
 import prisma from '../lib/prisma';
 
-export abstract class BaseRepository<T> {
+export abstract class BaseRepository<T, IdType = number> {
   protected abstract model: any;
 
   /**
    * Find a record by its ID
    */
-  async findById(id: number): Promise<T | null> {
+  async findById(id: IdType): Promise<T | null> {
     return this.model.findUnique({
       where: { id },
     }) as Promise<T | null>;
@@ -31,7 +31,7 @@ export abstract class BaseRepository<T> {
   /**
    * Update a record
    */
-  async update(id: number, data: any): Promise<T> {
+  async update(id: IdType, data: any): Promise<T> {
     return this.model.update({
       where: { id },
       data,
@@ -41,7 +41,7 @@ export abstract class BaseRepository<T> {
   /**
    * Delete a record
    */
-  async delete(id: number): Promise<T> {
+  async delete(id: IdType): Promise<T> {
     return this.model.delete({
       where: { id },
     }) as Promise<T>;

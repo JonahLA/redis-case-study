@@ -17,6 +17,7 @@ describe('CartService', () => {
   // Mock instances
   let cartService: CartService;
   let mockProductRepository: jest.Mocked<ProductRepository>;
+  let consoleSpy: jest.SpyInstance;
   
   // Test data
   const testCartId = 'test-cart-123';
@@ -51,6 +52,9 @@ describe('CartService', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Set up the mocked product repository
     mockProductRepository = new ProductRepository() as jest.Mocked<ProductRepository>;
     
@@ -62,6 +66,11 @@ describe('CartService', () => {
     
     // Clear the static carts storage before each test
     (CartService as any).cartsStorage = new Map<string, Cart>();
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   describe('getCart', () => {

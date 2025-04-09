@@ -6,6 +6,7 @@ import { createServiceTestDependencies } from '../../utils/serviceTestUtils';
 describe('HealthService', () => {
   // Create an instance of the service
   const healthService = new HealthService();
+  let consoleSpy: jest.SpyInstance;
   
   // Set up mock for external dependencies
   jest.spyOn(prismaLib, 'checkDatabaseConnection');
@@ -15,10 +16,14 @@ describe('HealthService', () => {
     jest.clearAllMocks();
     // Reset the date for consistent testing
     jest.useFakeTimers().setSystemTime(new Date('2025-04-06T12:00:00Z'));
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
   
   afterEach(() => {
     jest.useRealTimers();
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
   
   describe('getHealthStatus', () => {

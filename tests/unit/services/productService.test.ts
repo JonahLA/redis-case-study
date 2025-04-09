@@ -10,6 +10,7 @@ describe('ProductService', () => {
   // Mock instances
   let productService: ProductService;
   let mockRepository: jest.Mocked<ProductRepository>;
+  let consoleSpy: jest.SpyInstance;
   
   // Test data
   const mockProducts = [
@@ -70,6 +71,9 @@ describe('ProductService', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Set up the mocked repository
     mockRepository = new ProductRepository() as jest.Mocked<ProductRepository>;
     
@@ -78,6 +82,11 @@ describe('ProductService', () => {
     
     // Replace the internal repository with our mock
     (productService as any).repository = mockRepository;
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   describe('getAllProducts', () => {

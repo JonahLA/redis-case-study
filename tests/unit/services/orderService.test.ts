@@ -4,7 +4,47 @@ import { CartService } from '../../../src/services/cartService';
 import { ProductService } from '../../../src/services/productService';
 import { InventoryService } from '../../../src/services/inventoryService';
 import { AppError } from '../../../src/middleware/errorMiddleware';
-import { ShippingAddress, PaymentDetails } from '../../../src/types/order';
+import { PaymentDetails } from '../../../src/types/order';
+import { Prisma } from '@prisma/client';
+
+// Define types from Prisma for testing
+type OrderWithRelations = Prisma.OrderGetPayload<{
+  include: { 
+    items: {
+      include: {
+        product: true
+      }
+    }
+  }
+}>;
+
+type OrderItem = Prisma.OrderItemGetPayload<{
+  include: {
+    product: true
+  }
+}>;
+
+// Define cart item type to match CartService
+interface CartItem {
+  productId: number;
+  quantity: number;
+  product: {
+    id: number;
+    name: string;
+    price: number;
+    imageUrl: string;
+  };
+  subtotal: number;
+}
+
+interface Cart {
+  id: string;
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  itemCount: number;
+}
 
 // Mock the dependencies
 jest.mock('../../../src/repositories/orderRepository');
@@ -19,13 +59,14 @@ describe('OrderService', () => {
   let mockCartService: jest.Mocked<CartService>;
   let mockProductService: jest.Mocked<ProductService>;
   let mockInventoryService: jest.Mocked<InventoryService>;
+  let consoleSpy: jest.SpyInstance;
   
   // Test data
   const testUserId = 'user123';
   const testOrderId = 'order123';
   const testCartId = 'cart123';
   
-  const mockAddress: ShippingAddress = {
+  const mockAddress = {
     name: 'John Doe',
     street: '123 Main St',
     city: 'Test City',
@@ -39,28 +80,48 @@ describe('OrderService', () => {
     simulatePayment: true
   };
   
-  const mockOrder = {
-    orderId: testOrderId,
+  const mockOrder: OrderWithRelations = {
+    id: testOrderId,
     userId: testUserId,
     status: 'pending',
-    createdAt: new Date().toISOString(),
-    items: [
-      {
-        productId: 1,
-        productName: 'Test Product',
-        quantity: 2,
-        unitPrice: 10,
-        subtotal: 20
+    subtotal: new Prisma.Decimal(20),
+    tax: new Prisma.Decimal(1.6),
+    shipping: new Prisma.Decimal(10),
+    total: new Prisma.Decimal(31.6),
+    shippingName: mockAddress.name,
+    shippingStreet: mockAddress.street,
+    shippingCity: mockAddress.city,
+    shippingState: mockAddress.state,
+    shippingZip: mockAddress.zipCode,
+    shippingCountry: mockAddress.country,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    items: [{
+      id: 1,
+      orderId: testOrderId,
+      productId: 1,
+      productName: 'Test Product',
+      quantity: 2,
+      unitPrice: new Prisma.Decimal(10),
+      subtotal: new Prisma.Decimal(20),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      product: {
+        id: 1,
+        name: 'Test Product',
+        description: 'Test Description',
+        price: new Prisma.Decimal(10),
+        stock: 10,
+        imageUrl: 'test.jpg',
+        categoryId: 1,
+        brandId: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
-    ],
-    subtotal: 20,
-    tax: 1.6,
-    shipping: 10,
-    total: 31.6,
-    shippingAddress: mockAddress
+    }]
   };
 
-  const mockCart = {
+  const mockCart: Cart = {
     id: testCartId,
     items: [
       {
@@ -96,6 +157,9 @@ describe('OrderService', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     
+    // Suppress console.error output
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     // Set up the mocked dependencies
     mockOrderRepository = new OrderRepository() as jest.Mocked<OrderRepository>;
     mockCartService = new CartService() as jest.Mocked<CartService>;
@@ -110,6 +174,11 @@ describe('OrderService', () => {
     (orderService as any).cartService = mockCartService;
     (orderService as any).productService = mockProductService;
     (orderService as any).inventoryService = mockInventoryService;
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   describe('createOrder', () => {
@@ -131,17 +200,19 @@ describe('OrderService', () => {
         subtotal: mockCart.subtotal,
         tax: mockCart.tax,
         total: mockCart.total,
-        orderItems: expect.arrayContaining([
+        items: expect.arrayContaining([
           expect.objectContaining({
             productId: 1,
+            productName: 'Test Product 1',
             quantity: 2,
-            price: 19.99,
+            unitPrice: 19.99,
             subtotal: 39.98
           }),
           expect.objectContaining({
             productId: 2,
+            productName: 'Test Product 2',
             quantity: 1,
-            price: 29.99,
+            unitPrice: 29.99,
             subtotal: 29.99
           })
         ])
@@ -281,11 +352,12 @@ describe('OrderService', () => {
   describe('completeOrder', () => {
     it('should mark order as completed', async () => {
       // Arrange
-      mockOrderRepository.findById = jest.fn().mockResolvedValue(mockOrder);
-      mockOrderRepository.updateStatus = jest.fn().mockResolvedValue({
+      const completedOrder = {
         ...mockOrder,
         status: 'completed'
-      });
+      };
+      mockOrderRepository.findById = jest.fn().mockResolvedValue(mockOrder);
+      mockOrderRepository.updateStatus = jest.fn().mockResolvedValue(completedOrder);
       
       // Act
       const result = await orderService.completeOrder(testOrderId, testUserId);
