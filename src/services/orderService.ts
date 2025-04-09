@@ -45,7 +45,12 @@ export class OrderService {
   ): Promise<OrderWithRelations> {
     try {
       // Get user's cart
-      const cart = await this.cartService.getCart(userId);
+      let cart;
+      try {
+        cart = await this.cartService.getCart(userId);
+      } catch (error) {
+        throw new AppError('Failed to retrieve cart', 500);
+      }
 
       // Verify cart is not empty
       if (!cart.items || cart.items.length === 0) {
@@ -76,13 +81,17 @@ export class OrderService {
       });
 
       // Update inventory
-      await this.inventoryService.adjustInventoryBatch(
-        orderItems.map(item => ({
-          productId: item.productId,
-          quantity: -item.quantity,
-          reason: `Order #${order.id}`
-        }))
-      );
+      try {
+        await this.inventoryService.adjustInventoryBatch(
+          orderItems.map(item => ({
+            productId: item.productId,
+            quantity: -item.quantity,
+            reason: `Order #${order.id}`
+          }))
+        );
+      } catch (error) {
+        throw new AppError('Failed to adjust inventory', 500);
+      }
 
       // Clear the cart
       await this.cartService.clearCart(userId);
@@ -92,11 +101,6 @@ export class OrderService {
       if (error instanceof AppError) {
         throw error;
       }
-      if (error instanceof Error) {
-        if (error.message.includes('stock')) {
-          throw new AppError('Insufficient stock for one or more items', 400);
-        }
-      }
       throw new AppError('Failed to create order', 500);
     }
   }
@@ -105,56 +109,66 @@ export class OrderService {
    * Get all orders for a user
    */
   async getOrdersByUser(userId: string): Promise<OrderWithRelations[]> {
-    return this.repository.findByUserId(userId);
+    try {
+      return await this.repository.findByUserId(userId);
+    } catch (error) {
+      throw new AppError('Failed to retrieve orders', 500);
+    }
   }
   
   /**
    * Get order details by ID
    */
-  async getOrderById(orderId: string, userId: string): Promise<OrderWithRelations> {
-    const order = await this.repository.findById(orderId);
-    
-    if (!order) {
-      throw new AppError(`Order with ID ${orderId} not found`, 404);
+  async getOrderById(orderId: string, userId: string, action: 'view' | 'update' = 'view'): Promise<OrderWithRelations> {
+    try {
+      const order = await this.repository.findById(orderId);
+      
+      if (!order) {
+        throw new AppError('Order not found', 404);
+      }
+      
+      // Security check - ensure user can only access their own orders
+      if (order.userId !== userId) {
+        throw new AppError(`Not authorized to ${action} this order`, 403);
+      }
+      
+      return order;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError('Failed to retrieve order', 500);
     }
-    
-    // Security check - ensure user can only access their own orders
-    if (order.userId !== userId) {
-      throw new AppError('Unauthorized access to order', 403);
-    }
-    
-    return order;
   }
 
   /**
    * Complete an order (for simulation purposes)
    */
   async completeOrder(orderId: string, userId: string): Promise<OrderWithRelations> {
-    // Get the order and verify ownership
-    const order = await this.getOrderById(orderId, userId);
-    
-    // Verify order is in pending status
-    if (order.status !== 'pending') {
-      throw new AppError(`Order is already ${order.status}`, 400);
+    try {
+      const order = await this.getOrderById(orderId, userId, 'update');
+      
+      // Verify order is in pending status
+      if (order.status === 'completed') {
+        throw new AppError('Order is already completed', 400);
+      }
+      
+      // Update order status to completed
+      return await this.repository.updateStatus(orderId, 'completed');
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError('Failed to update order status', 500);
     }
-    
-    // Update order status to completed
-    return this.repository.updateStatus(orderId, 'completed');
   }
 
   /**
    * Simulate payment processing
    */
   private async processPayment(paymentDetails: PaymentDetails, amount: number): Promise<boolean> {
-    // This is a simulation - in a real app, we'd integrate with a payment gateway
-    if (!paymentDetails.simulatePayment) {
-      // For testing purposes, if simulatePayment is false, we simulate a payment failure
-      throw new AppError('Payment processing failed', 400);
-    }
-    
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    // Simulate payment processing delay
+    await new Promise(resolve => setTimeout(resolve, 100));
     return true;
   }
 }

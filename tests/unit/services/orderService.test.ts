@@ -104,8 +104,6 @@ describe('OrderService', () => {
       quantity: 2,
       unitPrice: new Prisma.Decimal(10),
       subtotal: new Prisma.Decimal(20),
-      createdAt: new Date(),
-      updatedAt: new Date(),
       product: {
         id: 1,
         name: 'Test Product',
@@ -200,6 +198,7 @@ describe('OrderService', () => {
         subtotal: mockCart.subtotal,
         tax: mockCart.tax,
         total: mockCart.total,
+        shipping: mockCart.total - mockCart.subtotal - mockCart.tax,
         items: expect.arrayContaining([
           expect.objectContaining({
             productId: 1,
