@@ -163,9 +163,8 @@ export class InventoryService {
 
           return {
             productId: item.productId,
-            previousStock,
-            currentStock: newStock,
-            adjustment: item.quantity,
+            adjustedQuantity: item.quantity,
+            newStockLevel: newStock,
             status: this.determineStockStatus(newStock),
             timestamp: new Date().toISOString()
           };
