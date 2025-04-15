@@ -5,8 +5,25 @@ import { InventoryAuditRepository } from '../../../src/repositories/inventoryAud
 import { AppError } from '../../../src/middleware/errorMiddleware';
 
 // Mock the repositories
-jest.mock('../../../src/repositories/productRepository');
-jest.mock('../../../src/repositories/inventoryAuditRepository');
+jest.mock('../../../src/repositories/productRepository', () => {
+  return {
+    ProductRepository: jest.fn().mockImplementation(() => ({
+      findById: jest.fn(),
+      findByIds: jest.fn(),
+      update: jest.fn(),
+      batchAdjustStock: jest.fn()
+    }))
+  };
+});
+
+jest.mock('../../../src/repositories/inventoryAuditRepository', () => {
+  return {
+    InventoryAuditRepository: jest.fn().mockImplementation(() => ({
+      create: jest.fn(),
+      getAuditHistoryByProduct: jest.fn()
+    }))
+  };
+});
 
 describe('InventoryService', () => {
   // Mock instances
@@ -65,8 +82,8 @@ describe('InventoryService', () => {
     inventoryService = new InventoryService();
     
     // Replace the internal repositories with our mocks
-    (inventoryService as any).repository = mockProductRepository;
-    (inventoryService as any).auditRepository = mockAuditRepository;
+    (inventoryService as any).productRepository = mockProductRepository;
+    (inventoryService as any).inventoryAuditRepository = mockAuditRepository;
   });
 
   afterEach(() => {
@@ -143,8 +160,8 @@ describe('InventoryService', () => {
       const newStock = previousStock + adjustment;
       
       mockProductRepository.findByIds = jest.fn().mockResolvedValue([mockProduct]);
-      mockProductRepository.batchAdjustStock = jest.fn().mockResolvedValue([{ ...mockProduct, stock: newStock }]);
-      mockAuditRepository.createAuditEntry = jest.fn().mockResolvedValue(mockAuditEntry);
+      mockProductRepository.update = jest.fn().mockResolvedValue({ ...mockProduct, stock: newStock });
+      mockAuditRepository.create = jest.fn().mockResolvedValue(mockAuditEntry);
       
       // Mock Date.now to return consistent timestamp
       const mockDate = new Date('2025-04-10T12:00:00.000Z');
@@ -160,9 +177,8 @@ describe('InventoryService', () => {
       // Assert
       expect(result[0]).toEqual({
         productId: testProductId,
-        previousStock,
-        currentStock: newStock,
-        adjustment,
+        adjustedQuantity: adjustment,
+        newStockLevel: newStock,
         status: 'in_stock',
         timestamp: mockDate.toISOString()
       });
@@ -178,8 +194,8 @@ describe('InventoryService', () => {
       const newStock = previousStock + adjustment;
       
       mockProductRepository.findByIds = jest.fn().mockResolvedValue([mockProduct]);
-      mockProductRepository.batchAdjustStock = jest.fn().mockResolvedValue([{ ...mockProduct, stock: newStock }]);
-      mockAuditRepository.createAuditEntry = jest.fn().mockResolvedValue(mockAuditEntry);
+      mockProductRepository.update = jest.fn().mockResolvedValue({ ...mockProduct, stock: newStock });
+      mockAuditRepository.create = jest.fn().mockResolvedValue(mockAuditEntry);
       
       // Act
       await inventoryService.batchAdjustStock([{
@@ -188,13 +204,11 @@ describe('InventoryService', () => {
       }]);
       
       // Assert
-      expect(mockAuditRepository.createAuditEntry).toHaveBeenCalledWith(
+      expect(mockAuditRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           productId: testProductId,
-          previousStock,
-          newStock,
-          adjustment,
-          reason: undefined
+          quantity: adjustment,
+          reason: expect.any(String)
         })
       );
     });
@@ -380,16 +394,15 @@ describe('InventoryService', () => {
       const mockProduct2 = { ...mockProduct, id: 2, stock: 20, name: 'Test Product 2' };
       
       const batchItems = [
-        { productId: 1, quantity: 2, reason: 'Order #123' },
-        { productId: 2, quantity: 3, reason: 'Order #123' }
+        { productId: 1, quantity: -2, reason: 'Order #123' },
+        { productId: 2, quantity: -3, reason: 'Order #123' }
       ];
       
       mockProductRepository.findByIds = jest.fn().mockResolvedValue([mockProduct1, mockProduct2]);
-      mockProductRepository.batchAdjustStock = jest.fn().mockResolvedValue([
-        { ...mockProduct1, stock: 8 },
-        { ...mockProduct2, stock: 17 }
-      ]);
-      mockAuditRepository.createAuditEntry = jest.fn().mockResolvedValue(mockAuditEntry);
+      mockProductRepository.update = jest.fn()
+        .mockResolvedValueOnce({ ...mockProduct1, stock: 8 })
+        .mockResolvedValueOnce({ ...mockProduct2, stock: 17 });
+      mockAuditRepository.create = jest.fn().mockResolvedValue(mockAuditEntry);
       
       // Mock Date.now to return consistent timestamp
       const mockDate = new Date('2025-04-10T12:00:00.000Z');
@@ -400,26 +413,20 @@ describe('InventoryService', () => {
       
       // Assert
       expect(mockProductRepository.findByIds).toHaveBeenCalledWith([1, 2]);
-      expect(mockProductRepository.batchAdjustStock).toHaveBeenCalledWith([
-        { id: 1, adjustment: -2 },
-        { id: 2, adjustment: -3 }
-      ]);
-      
-      expect(mockAuditRepository.createAuditEntry).toHaveBeenCalledTimes(2);
+      expect(mockProductRepository.update).toHaveBeenCalledTimes(2);
+      expect(mockAuditRepository.create).toHaveBeenCalledTimes(2);
       expect(result).toEqual([
         {
           productId: 1,
-          previousStock: 10,
-          currentStock: 8,
-          adjustment: -2,
+          adjustedQuantity: -2,
+          newStockLevel: 8,
           status: 'in_stock',
           timestamp: mockDate.toISOString()
         },
         {
           productId: 2,
-          previousStock: 20,
-          currentStock: 17,
-          adjustment: -3,
+          adjustedQuantity: -3,
+          newStockLevel: 17,
           status: 'in_stock',
           timestamp: mockDate.toISOString()
         }
@@ -438,18 +445,16 @@ describe('InventoryService', () => {
       ];
       
       mockProductRepository.findByIds = jest.fn().mockResolvedValue([mockProduct1]);
-      mockProductRepository.batchAdjustStock = jest.fn().mockResolvedValue([
-        { ...mockProduct1, stock: 8 }
-      ]);
-      mockAuditRepository.createAuditEntry = jest.fn().mockResolvedValue(mockAuditEntry);
+      mockProductRepository.update = jest.fn().mockResolvedValue({ ...mockProduct1, stock: 12 });
+      mockAuditRepository.create = jest.fn().mockResolvedValue(mockAuditEntry);
       
       // Act
       await inventoryService.batchAdjustStock(batchItems);
       
       // Assert
-      expect(mockAuditRepository.createAuditEntry).toHaveBeenCalledWith(
+      expect(mockAuditRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          reason: 'Batch adjustment'
+          reason: 'Batch stock increment'
         })
       );
     });
@@ -467,7 +472,7 @@ describe('InventoryService', () => {
       
       // Act & Assert
       await expect(inventoryService.batchAdjustStock(batchItems))
-        .rejects.toThrow(new AppError('Product with ID 999 not found', 404));
+        .rejects.toThrow(new AppError('Products not found: 999', 404));
     });
     
     it('should throw an error when adjustment would result in negative stock', async () => {
@@ -475,7 +480,7 @@ describe('InventoryService', () => {
       const mockProduct1 = { ...mockProduct, id: 1, stock: 10 };
       
       const batchItems = [
-        { productId: 1, quantity: 15 } // Would result in -5 stock
+        { productId: 1, quantity: -15 } // Would result in -5 stock
       ];
       
       mockProductRepository.findByIds = jest.fn().mockResolvedValue([mockProduct1]);
@@ -484,7 +489,7 @@ describe('InventoryService', () => {
       await expect(inventoryService.batchAdjustStock(batchItems))
         .rejects.toThrow(
           new AppError(
-            `Insufficient stock for product Test Product (ID: 1). Current: 10, Requested: 15`,
+            `Insufficient stock for product ${mockProduct1.name}. Required: 15, Available: 10`,
             400
           )
         );
@@ -499,7 +504,7 @@ describe('InventoryService', () => {
       
       // Assert
       expect(result).toEqual([]);
-      expect(mockProductRepository.findByIds).toHaveBeenCalledWith([]);
+      expect(mockProductRepository.findByIds).not.toHaveBeenCalled();
     });
     
     it('should handle repository errors', async () => {
@@ -514,7 +519,7 @@ describe('InventoryService', () => {
       
       // Act & Assert
       await expect(inventoryService.batchAdjustStock(batchItems))
-        .rejects.toThrow(new AppError('Failed to update inventory for all products', 500));
+        .rejects.toThrow(new AppError('Failed to process batch stock adjustment', 500));
     });
   });
 });

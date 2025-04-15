@@ -120,6 +120,11 @@ export class InventoryService {
    */
   async batchAdjustStock(items: Array<{ productId: number; quantity: number; reason?: string }>): Promise<InventoryAdjustmentResponse[]> {
     try {
+      // Handle empty batch case
+      if (items.length === 0) {
+        return [];
+      }
+
       // First validate all products exist and have sufficient stock
       const productIds = items.map(item => item.productId);
       const products = await this.productRepository.findByIds(productIds);
@@ -198,7 +203,7 @@ export class InventoryService {
       }));
     } catch (error: any) {
       if (error instanceof AppError) throw error;
-      throw new AppError('Failed to get inventory audit history', 500);
+      throw new AppError('Failed to fetch inventory audit history', 500);
     }
   }
 
