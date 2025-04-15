@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { BrandRepository } from '../repositories/brandRepository';
 import { AppError } from '../middleware/errorMiddleware';
-import { PaginatedResponse } from './categoryService';
+import { PaginatedResponse, SortOptions } from '../types/common';
 
 export class BrandService {
   private repository: BrandRepository;
@@ -33,12 +33,7 @@ export class BrandService {
    */
   async getProductsByBrand(
     brandId: number,
-    options: {
-      limit?: number;
-      offset?: number;
-      sort?: string;
-      order?: 'asc' | 'desc';
-    }
+    options: SortOptions & { limit?: number; offset?: number }
   ): Promise<PaginatedResponse<Prisma.ProductGetPayload<{}>>> {
     // Default pagination and sorting options
     const limit = options.limit || 10;

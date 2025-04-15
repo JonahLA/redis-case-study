@@ -1,16 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { CategoryRepository } from '../repositories/categoryRepository';
 import { AppError } from '../middleware/errorMiddleware';
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-    hasMore: boolean;
-  };
-}
+import { PaginatedResponse } from '../types/common';
 
 export class CategoryService {
   private repository: CategoryRepository;

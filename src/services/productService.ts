@@ -1,35 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { ProductRepository } from '../repositories/productRepository';
 import { AppError } from '../middleware/errorMiddleware';
-import { PaginatedResponse } from './categoryService';
-
-export interface ProductDetailResponse {
-  id: number;
-  name: string;
-  description: string;
-  price: string;
-  stock: number;
-  imageUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-  category: {
-    id: number;
-    name: string;
-    description: string;
-  };
-  brand: {
-    id: number;
-    name: string;
-    description: string;
-    imageUrl: string | null;
-  };
-  relatedProducts: {
-    id: number;
-    name: string;
-    price: string;
-    imageUrl: string | null;
-  }[];
-}
+import { ProductDetailResponse, PaginatedResponse } from '../types/product';
 
 export class ProductService {
   private repository: ProductRepository;

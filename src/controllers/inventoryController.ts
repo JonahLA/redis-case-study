@@ -85,8 +85,12 @@ router.patch('/:productId/adjust', async (req: Request, res: Response, next: Nex
       throw new AppError('Invalid adjustment value', 400);
     }
     
-    const result = await inventoryService.adjustInventory(productId, adjustment, reason);
-    res.status(200).json(result);
+    const result = await inventoryService.batchAdjustStock([{
+      productId,
+      quantity: adjustment,
+      reason
+    }]);
+    res.status(200).json(result[0]);
   } catch (error) {
     next(error);
   }
@@ -145,7 +149,7 @@ router.get('/:productId', async (req: Request, res: Response, next: NextFunction
       throw new AppError('Invalid product ID', 400);
     }
     
-    const inventory = await inventoryService.getInventory(productId);
+    const inventory = await inventoryService.getInventoryStatus(productId);
     res.status(200).json(inventory);
   } catch (error) {
     next(error);
@@ -226,7 +230,7 @@ router.get('/:productId/audit', async (req: Request, res: Response, next: NextFu
       throw new AppError('Invalid offset parameter', 400);
     }
     
-    const auditHistory = await inventoryService.getInventoryAuditHistory(productId, limit, offset);
+    const auditHistory = await inventoryService.getInventoryAuditHistory(productId);
     res.status(200).json({ auditHistory });
   } catch (error) {
     next(error);

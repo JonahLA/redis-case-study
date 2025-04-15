@@ -1,4 +1,5 @@
-import { CartService, Cart, CartItem } from '../../../src/services/cartService';
+import { CartService } from '../../../src/services/cartService';
+import { Cart, CartItem } from '../../../src/types/cart';
 import { ProductRepository } from '../../../src/repositories/productRepository';
 import { AppError } from '../../../src/middleware/errorMiddleware';
 import { Prisma } from '@prisma/client';

@@ -1,28 +1,7 @@
 import { AppError } from '../middleware/errorMiddleware';
 import { ProductRepository } from '../repositories/productRepository';
 import { Prisma } from '@prisma/client';
-
-// Cart-related interfaces
-export interface CartItem {
-  productId: number;
-  quantity: number;
-  product: {
-    id: number;
-    name: string;
-    price: number;
-    imageUrl: string;
-  };
-  subtotal: number;
-}
-
-export interface Cart {
-  id: string;
-  items: CartItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
-  itemCount: number;
-}
+import { Cart, CartItem } from '../types/cart';
 
 export class CartService {
   private productRepository: ProductRepository;

@@ -3,6 +3,7 @@ import { CartService } from './cartService';
 import { InventoryService } from './inventoryService';
 import { AppError } from '../middleware/errorMiddleware';
 import { Prisma } from '@prisma/client';
+import { PaymentDetails } from '../types/order';
 
 type OrderWithRelations = Prisma.OrderGetPayload<{
   include: { 
@@ -13,12 +14,6 @@ type OrderWithRelations = Prisma.OrderGetPayload<{
     }
   }
 }>;
-
-// Payment simulation type - keeping this as it's not a DB concern
-interface PaymentDetails {
-  method: string;
-  simulatePayment: boolean;
-}
 
 export class OrderService {
   private repository: OrderRepository;
@@ -82,7 +77,7 @@ export class OrderService {
 
       // Update inventory
       try {
-        await this.inventoryService.adjustInventoryBatch(
+        await this.inventoryService.batchAdjustStock(
           orderItems.map(item => ({
             productId: item.productId,
             quantity: -item.quantity,

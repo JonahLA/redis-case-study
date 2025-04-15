@@ -184,7 +184,7 @@ describe('OrderService', () => {
       // Arrange
       mockCartService.getCart = jest.fn().mockResolvedValue({ ...mockCart, id: testCartId });
       mockOrderRepository.createOrder = jest.fn().mockResolvedValue(mockOrder);
-      mockInventoryService.adjustInventoryBatch = jest.fn().mockResolvedValue(undefined);
+      mockInventoryService.batchAdjustStock = jest.fn().mockResolvedValue(undefined);
       mockCartService.clearCart = jest.fn().mockResolvedValue({ ...mockCart, items: [] });
       
       // Act
@@ -216,7 +216,7 @@ describe('OrderService', () => {
           })
         ])
       });
-      expect(mockInventoryService.adjustInventoryBatch).toHaveBeenCalledWith([
+      expect(mockInventoryService.batchAdjustStock).toHaveBeenCalledWith([
         { productId: 1, quantity: -2, reason: `Order #${testOrderId}` },
         { productId: 2, quantity: -1, reason: `Order #${testOrderId}` }
       ]);
@@ -267,7 +267,7 @@ describe('OrderService', () => {
       // Arrange
       mockCartService.getCart = jest.fn().mockResolvedValue(mockCart);
       mockOrderRepository.createOrder = jest.fn().mockResolvedValue(mockOrder);
-      mockInventoryService.adjustInventoryBatch = jest.fn().mockImplementation(() => {
+      mockInventoryService.batchAdjustStock = jest.fn().mockImplementation(() => {
         throw new Error('Insufficient stock');
       });
       

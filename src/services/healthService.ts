@@ -1,4 +1,4 @@
-import { HealthStatus } from '../models/healthStatus';
+import { HealthStatus } from '../types/health';
 import { checkDatabaseConnection } from '../lib/prisma';
 import { checkRedisConnection } from '../lib/redis';
 
