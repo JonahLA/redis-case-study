@@ -6,7 +6,7 @@ import { cleanup } from './cleanup.js';
 export const options = {
   stages: CONFIG.stages.checkout,
   thresholds: {
-    http_req_duration: ['p95<2000'], // 95% of requests should complete within 2s
+    http_req_duration: ['p(95)<2000'], // 95% of requests should complete within 2s
     http_req_failed: ['rate<0.01'],  // Less than 1% of requests should fail
   }
 };
