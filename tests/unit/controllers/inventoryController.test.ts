@@ -6,26 +6,26 @@ import { AppError } from '../../../src/middleware/errorMiddleware';
 
 // Mock the InventoryService
 jest.mock('../../../src/services/inventoryService', () => {
-  const mockAdjustInventory = jest.fn();
-  const mockGetInventory = jest.fn();
+  const mockBatchAdjustStock = jest.fn();
+  const mockGetInventoryStatus = jest.fn();
   const mockGetInventoryAuditHistory = jest.fn();
   
   return {
     InventoryService: jest.fn().mockImplementation(() => ({
-      adjustInventory: mockAdjustInventory,
-      getInventory: mockGetInventory,
+      batchAdjustStock: mockBatchAdjustStock,
+      getInventoryStatus: mockGetInventoryStatus,
       getInventoryAuditHistory: mockGetInventoryAuditHistory
     })),
-    mockAdjustInventory,
-    mockGetInventory,
+    mockBatchAdjustStock,
+    mockGetInventoryStatus,
     mockGetInventoryAuditHistory
   };
 });
 
 // Import the mock functions after mocking
 const {
-  mockAdjustInventory,
-  mockGetInventory,
+  mockBatchAdjustStock,
+  mockGetInventoryStatus,
   mockGetInventoryAuditHistory
 } = jest.requireMock('../../../src/services/inventoryService');
 
@@ -68,7 +68,7 @@ describe('Inventory Controller', () => {
   describe('PATCH /:productId/adjust', () => {
     it('should adjust inventory and return updated status', async () => {
       // Arrange
-      mockAdjustInventory.mockResolvedValue(mockAdjustmentResponse);
+      mockBatchAdjustStock.mockResolvedValue([mockAdjustmentResponse]);
       
       const req = createMockRequest({
         params: { productId: mockProductId.toString() },
@@ -88,11 +88,11 @@ describe('Inventory Controller', () => {
       await routeHandler(req, res, next);
       
       // Assert
-      expect(mockAdjustInventory).toHaveBeenCalledWith(
-        mockProductId,
-        2,
-        'Stock replenishment'
-      );
+      expect(mockBatchAdjustStock).toHaveBeenCalledWith([{
+        productId: mockProductId,
+        quantity: 2,
+        reason: 'Stock replenishment'
+      }]);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockAdjustmentResponse);
     });
@@ -118,7 +118,7 @@ describe('Inventory Controller', () => {
       
       // Assert
       expect(next).toHaveBeenCalledWith(expect.any(AppError));
-      expect(mockAdjustInventory).not.toHaveBeenCalled();
+      expect(mockBatchAdjustStock).not.toHaveBeenCalled();
     });
 
     it('should handle invalid adjustment value', async () => {
@@ -141,14 +141,14 @@ describe('Inventory Controller', () => {
       
       // Assert
       expect(next).toHaveBeenCalledWith(expect.any(AppError));
-      expect(mockAdjustInventory).not.toHaveBeenCalled();
+      expect(mockBatchAdjustStock).not.toHaveBeenCalled();
     });
   });
 
   describe('GET /:productId', () => {
     it('should return inventory status with 200 OK', async () => {
       // Arrange
-      mockGetInventory.mockResolvedValue(mockInventoryStatus);
+      mockGetInventoryStatus.mockResolvedValue(mockInventoryStatus);
       
       const req = createMockRequest({
         params: { productId: mockProductId.toString() }
@@ -164,7 +164,7 @@ describe('Inventory Controller', () => {
       await routeHandler(req, res, next);
       
       // Assert
-      expect(mockGetInventory).toHaveBeenCalledWith(mockProductId);
+      expect(mockGetInventoryStatus).toHaveBeenCalledWith(mockProductId);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockInventoryStatus);
     });
@@ -186,12 +186,12 @@ describe('Inventory Controller', () => {
       
       // Assert
       expect(next).toHaveBeenCalledWith(expect.any(AppError));
-      expect(mockGetInventory).not.toHaveBeenCalled();
+      expect(mockGetInventoryStatus).not.toHaveBeenCalled();
     });
 
     it('should handle product not found', async () => {
       // Arrange
-      mockGetInventory.mockRejectedValue(new AppError('Product not found', 404));
+      mockGetInventoryStatus.mockRejectedValue(new AppError('Product not found', 404));
       
       const req = createMockRequest({
         params: { productId: '999' }
@@ -230,7 +230,7 @@ describe('Inventory Controller', () => {
       await routeHandler(req, res, next);
       
       // Assert
-      expect(mockGetInventoryAuditHistory).toHaveBeenCalledWith(mockProductId, 20, 0);
+      expect(mockGetInventoryAuditHistory).toHaveBeenCalledWith(mockProductId);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ auditHistory: mockAuditHistory });
     });
@@ -257,7 +257,7 @@ describe('Inventory Controller', () => {
       await routeHandler(req, res, next);
       
       // Assert
-      expect(mockGetInventoryAuditHistory).toHaveBeenCalledWith(mockProductId, 5, 10);
+      expect(mockGetInventoryAuditHistory).toHaveBeenCalledWith(mockProductId);
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
