@@ -6,8 +6,92 @@ const router = Router();
 const orderService = new OrderService();
 
 /**
- * POST /api/checkout
- * Create a new order from cart contents
+ * @swagger
+ * /api/checkout:
+ *   post:
+ *     summary: Create new order
+ *     description: Create a new order using the current cart contents and provided shipping/payment details
+ *     tags:
+ *       - Orders
+ *     parameters:
+ *       - name: user-id
+ *         in: header
+ *         description: ID of the user creating the order
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - shippingAddress
+ *               - paymentDetails
+ *             properties:
+ *               shippingAddress:
+ *                 type: object
+ *                 required:
+ *                   - name
+ *                   - street
+ *                   - city
+ *                   - state
+ *                   - zipCode
+ *                   - country
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     description: Full name for shipping
+ *                   street:
+ *                     type: string
+ *                     description: Street address
+ *                   city:
+ *                     type: string
+ *                     description: City
+ *                   state:
+ *                     type: string
+ *                     description: State/Province/Region
+ *                   zipCode:
+ *                     type: string
+ *                     description: ZIP/Postal code
+ *                   country:
+ *                     type: string
+ *                     description: Country
+ *               paymentDetails:
+ *                 type: object
+ *                 description: Payment information (simulated for testing)
+ *                 required:
+ *                   - method
+ *                   - status
+ *                 properties:
+ *                   method:
+ *                     type: string
+ *                     enum: [credit_card, debit_card, paypal]
+ *                   status:
+ *                     type: string
+ *                     enum: [success]
+ *     responses:
+ *       201:
+ *         description: Order successfully created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       400:
+ *         description: Invalid request (missing required fields or invalid data)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Cart not found or empty
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/checkout', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -26,8 +110,34 @@ router.post('/checkout', async (req: Request, res: Response, next: NextFunction)
 });
 
 /**
- * GET /api/orders
- * Get all orders for the current user
+ * @swagger
+ * /api/orders:
+ *   get:
+ *     summary: Get user orders
+ *     description: Retrieve all orders for the current user
+ *     tags:
+ *       - Orders
+ *     parameters:
+ *       - name: user-id
+ *         in: header
+ *         description: ID of the user whose orders to retrieve
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of user orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 orders:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Order'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/orders', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -40,8 +150,43 @@ router.get('/orders', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 /**
- * GET /api/orders/:orderId
- * Get a specific order by ID
+ * @swagger
+ * /api/orders/{orderId}:
+ *   get:
+ *     summary: Get order by ID
+ *     description: Retrieve detailed information about a specific order
+ *     tags:
+ *       - Orders
+ *     parameters:
+ *       - name: orderId
+ *         in: path
+ *         description: ID of the order to retrieve
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: user-id
+ *         in: header
+ *         description: ID of the user requesting the order
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         description: Order not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/orders/:orderId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -60,8 +205,45 @@ router.get('/orders/:orderId', async (req: Request, res: Response, next: NextFun
 });
 
 /**
- * PATCH /api/orders/:orderId/complete
- * Simulate order completion (for testing purposes)
+ * @swagger
+ * /api/orders/{orderId}/complete:
+ *   patch:
+ *     summary: Complete order
+ *     description: |
+ *       Simulate order completion for testing purposes.
+ *       This endpoint would typically be called by a payment processing webhook in a production environment.
+ *     tags:
+ *       - Orders
+ *     parameters:
+ *       - name: orderId
+ *         in: path
+ *         description: ID of the order to complete
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: user-id
+ *         in: header
+ *         description: ID of the user completing the order
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order successfully completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         description: Order not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.patch('/orders/:orderId/complete', async (req: Request, res: Response, next: NextFunction) => {
   try {

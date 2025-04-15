@@ -6,8 +6,27 @@ const router = Router();
 const categoryService = new CategoryService();
 
 /**
- * GET /api/categories
- * Get all categories
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Get all categories
+ *     description: Retrieve a list of all available product categories
+ *     tags:
+ *       - Categories
+ *     responses:
+ *       200:
+ *         description: List of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 categories:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -19,8 +38,37 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * GET /api/categories/:categoryId
- * Get a category by ID
+ * @swagger
+ * /api/categories/{categoryId}:
+ *   get:
+ *     summary: Get category by ID
+ *     description: Retrieve detailed information about a specific category
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *       - name: categoryId
+ *         in: path
+ *         description: ID of the category to retrieve
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       200:
+ *         description: Category details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 category:
+ *                   $ref: '#/components/schemas/Category'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/:categoryId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -38,8 +86,59 @@ router.get('/:categoryId', async (req: Request, res: Response, next: NextFunctio
 });
 
 /**
- * GET /api/categories/:categoryId/products
- * Get products by category with pagination and sorting
+ * @swagger
+ * /api/categories/{categoryId}/products:
+ *   get:
+ *     summary: Get products by category
+ *     description: Retrieve a paginated and sorted list of products within a specific category
+ *     tags:
+ *       - Categories
+ *       - Products
+ *     parameters:
+ *       - name: categoryId
+ *         in: path
+ *         description: ID of the category whose products to retrieve
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - $ref: '#/components/parameters/PaginationLimit'
+ *       - $ref: '#/components/parameters/PaginationOffset'
+ *       - $ref: '#/components/parameters/SortField'
+ *       - $ref: '#/components/parameters/SortOrder'
+ *     responses:
+ *       200:
+ *         description: List of products in the category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 products:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                       description: Total number of products in the category
+ *                     limit:
+ *                       type: integer
+ *                       description: Number of items per page
+ *                     offset:
+ *                       type: integer
+ *                       description: Number of items skipped
+ *                     hasMore:
+ *                       type: boolean
+ *                       description: Whether there are more products to fetch
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/:categoryId/products', async (req: Request, res: Response, next: NextFunction) => {
   try {

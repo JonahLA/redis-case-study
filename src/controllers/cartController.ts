@@ -6,8 +6,30 @@ const router = Router();
 const cartService = new CartService();
 
 /**
- * GET /api/cart
- * View cart contents
+ * @swagger
+ * /api/cart:
+ *   get:
+ *     summary: Get cart contents
+ *     description: Retrieve the current contents of the shopping cart
+ *     tags:
+ *       - Cart
+ *     parameters:
+ *       - name: cartId
+ *         in: query
+ *         description: Unique identifier for the cart (temporary implementation)
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: default-cart
+ *     responses:
+ *       200:
+ *         description: Cart contents successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -23,8 +45,56 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * POST /api/cart/items
- * Add a product to the cart
+ * @swagger
+ * /api/cart/items:
+ *   post:
+ *     summary: Add item to cart
+ *     description: Add a product to the shopping cart with specified quantity
+ *     tags:
+ *       - Cart
+ *     parameters:
+ *       - name: cartId
+ *         in: query
+ *         description: Unique identifier for the cart (temporary implementation)
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: default-cart
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - productId
+ *               - quantity
+ *             properties:
+ *               productId:
+ *                 type: integer
+ *                 description: ID of the product to add
+ *                 minimum: 1
+ *               quantity:
+ *                 type: integer
+ *                 description: Quantity of the product to add
+ *                 minimum: 1
+ *     responses:
+ *       201:
+ *         description: Item successfully added to cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         description: Product not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.post('/items', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -48,8 +118,58 @@ router.post('/items', async (req: Request, res: Response, next: NextFunction) =>
 });
 
 /**
- * PATCH /api/cart/items/:productId
- * Update item quantity in the cart
+ * @swagger
+ * /api/cart/items/{productId}:
+ *   patch:
+ *     summary: Update cart item quantity
+ *     description: Update the quantity of a specific product in the cart
+ *     tags:
+ *       - Cart
+ *     parameters:
+ *       - name: productId
+ *         in: path
+ *         description: ID of the product to update
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - name: cartId
+ *         in: query
+ *         description: Unique identifier for the cart (temporary implementation)
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: default-cart
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - quantity
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 description: New quantity for the product
+ *                 minimum: 1
+ *     responses:
+ *       200:
+ *         description: Item quantity successfully updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         description: Product not found in cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.patch('/items/:productId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -74,8 +194,45 @@ router.patch('/items/:productId', async (req: Request, res: Response, next: Next
 });
 
 /**
- * DELETE /api/cart/items/:productId
- * Remove an item from the cart
+ * @swagger
+ * /api/cart/items/{productId}:
+ *   delete:
+ *     summary: Remove item from cart
+ *     description: Remove a specific product from the shopping cart
+ *     tags:
+ *       - Cart
+ *     parameters:
+ *       - name: productId
+ *         in: path
+ *         description: ID of the product to remove
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - name: cartId
+ *         in: query
+ *         description: Unique identifier for the cart (temporary implementation)
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: default-cart
+ *     responses:
+ *       200:
+ *         description: Item successfully removed from cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         description: Product not found in cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.delete('/items/:productId', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -95,8 +252,30 @@ router.delete('/items/:productId', async (req: Request, res: Response, next: Nex
 });
 
 /**
- * DELETE /api/cart
- * Clear the entire cart
+ * @swagger
+ * /api/cart:
+ *   delete:
+ *     summary: Clear cart
+ *     description: Remove all items from the shopping cart
+ *     tags:
+ *       - Cart
+ *     parameters:
+ *       - name: cartId
+ *         in: query
+ *         description: Unique identifier for the cart (temporary implementation)
+ *         required: false
+ *         schema:
+ *           type: string
+ *           default: default-cart
+ *     responses:
+ *       200:
+ *         description: Cart successfully cleared
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Cart'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
  */
 router.delete('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
