@@ -30,3 +30,6 @@ This file provides a chronological overview of all work completed on the Redis C
 - [Cart Management API Implementation](./work-logs/20250405-cart-management-api.md)
 - [Checkout Process API Implementation](./work-logs/20250405-checkout-process-api.md)
 - [Inventory Update API Implementation](./work-logs/20250405-inventory-update-api.md)
+
+### April 15, 2025
+- [Baseline Load Testing Implementation](./work-logs/20250415-baseline-load-testing.md)
