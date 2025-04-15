@@ -132,6 +132,20 @@ docker-compose down
 docker-compose down -v
 ```
 
+### API Documentation
+
+The API is documented using Swagger/OpenAPI 3.0. You can access the interactive API documentation at:
+```
+http://localhost:7090/api-docs
+```
+This documentation provides:
+- Detailed information about all available endpoints
+- Request/response schemas
+- Interactive API testing interface
+- Models and component definitions
+
+The documentation is available when running either in local development or Docker mode.
+
 ### Database Management
 
 #### Running Prisma Migrations
